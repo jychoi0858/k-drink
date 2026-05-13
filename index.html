@@ -60,11 +60,6 @@ body.warning-bg{background:linear-gradient(180deg,#fff0f0 0%,#ffe0e0 50%,#ffd0d0
 .drink-type-btn{background:#f7fafc;border:2px solid #e2e8f0;border-radius:12px;padding:12px 8px;cursor:pointer;text-align:center;transition:all .2s}
 .drink-type-btn:hover{border-color:#667eea;background:#f0f4ff}.drink-type-btn.selected{border-color:#667eea;background:#f0f4ff}
 .drink-type-btn .drink-emoji{font-size:1.5em;display:block;margin-bottom:4px}.drink-type-btn .drink-name{font-size:.75em;color:#718096}
-.unit-section{margin-bottom:12px}.unit-section label{font-size:.85em;color:#718096;display:block;margin-bottom:8px}
-.unit-toggle{display:flex;gap:8px;justify-content:center}
-.unit-btn{padding:6px 20px;border:2px solid #e2e8f0;border-radius:10px;background:white;font-size:.85em;font-weight:600;color:#718096;cursor:pointer;transition:all .15s}
-.unit-btn:hover{border-color:#667eea;color:#667eea}
-.unit-btn.active{border-color:#667eea;background:linear-gradient(135deg,#667eea,#764ba2);color:white}
 .glass-section{margin-bottom:20px}.glass-section label{font-size:.85em;color:#718096;display:block;margin-bottom:8px}
 .glass-counter{display:flex;align-items:center;justify-content:center;gap:20px}
 .glass-counter button{width:44px;height:44px;border-radius:50%;border:2px solid #667eea;background:transparent;color:#667eea;font-size:1.3em;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -128,11 +123,7 @@ body.warning-bg{background:linear-gradient(180deg,#fff0f0 0%,#ffe0e0 50%,#ffd0d0
 <button class="drink-type-btn" data-type="sake" onclick="selectDrinkType(this)"><span class="drink-emoji">🍶</span><span class="drink-name">사케</span></button>
 <button class="drink-type-btn" data-type="etc" onclick="selectDrinkType(this)"><span class="drink-emoji">🫗</span><span class="drink-name">기타</span></button>
 </div>
-<div class="unit-section"><label>단위</label><div class="unit-toggle">
-<button class="unit-btn active" data-unit="잔" onclick="selectUnit(this)">🥃 잔</button>
-<button class="unit-btn" data-unit="병" onclick="selectUnit(this)">🍾 병</button>
-</div></div>
-<div class="glass-section"><label>수량</label><div class="glass-counter">
+<div class="glass-section"><label>병 수</label><div class="glass-counter">
 <button onclick="changeGlass(-1)">−</button><div class="glass-value" id="glass-value">1</div><button onclick="changeGlass(1)">+</button>
 </div></div>
 <button class="add-drink-btn" onclick="addDrinkToList()">+ 이 주종 추가</button>
@@ -148,7 +139,7 @@ var db=null,DOC_ID='default_user';
 try{firebase.initializeApp({apiKey:"AIzaSyCrpRzaJvvK1Zwx3VBS1njj7aQ4qoIz3tQ",authDomain:"k-drink-270f3.firebaseapp.com",projectId:"k-drink-270f3",storageBucket:"k-drink-270f3.firebasestorage.app",messagingSenderId:"217678075487",appId:"1:217678075487:web:d49ad7fd1c3b998cfaedea"});db=firebase.firestore()}catch(e){console.warn(e)}
 
 var currentYear,currentMonth,records={},selectedDate=null,selectedCalendarDate=null;
-var selectedDrinkType=null,glassCount=1,selectedUnit='잔',tempDrinks=[],hasExistingRecord=false;
+var selectedDrinkType=null,glassCount=1,selectedUnit='병',tempDrinks=[],hasExistingRecord=false;
 var drinkLimit=parseInt(localStorage.getItem('drink-limit')||'5'),appNow=new Date();
 
 var DRINK_INFO={soju:{emoji:'🍶',name:'소주'},beer:{emoji:'🍺',name:'맥주'},wine:{emoji:'🍷',name:'와인'},makgeolli:{emoji:'🥛',name:'막걸리'},whiskey:{emoji:'🥃',name:'위스키'},cocktail:{emoji:'🍸',name:'칵테일'},highball:{emoji:'🧊',name:'하이볼'},sake:{emoji:'🍶',name:'사케'},etc:{emoji:'🫗',name:'기타'}};
@@ -199,7 +190,7 @@ if(isToday)cls+=' today';if(hasRec)cls+=' has-record';if(dow===0)cls+=' sunday';
 var inn='<span class="day-number">'+day+'</span>';
 if(hasRec){var tot=records[dk].reduce(function(s,dr){return s+dr.glasses},0);var mn=records[dk][0];var em=(DRINK_INFO[mn.type]&&DRINK_INFO[mn.type].emoji)||'🍺';inn+='<span class="day-icon">'+em+(tot>1?tot:'')+'</span>'}
 el.className=cls;el.innerHTML=inn;
-if(!isFut){el.addEventListener('click',function(){selectedCalendarDate=dk;renderCalendar();renderDaySummary()});el.addEventListener('dblclick',function(){openModal(currentYear,currentMonth,day)})}
+if(!isFut){el.addEventListener('click',function(){selectedCalendarDate=dk;renderCalendar();renderDaySummary();openModal(currentYear,currentMonth,day)})}
 c.appendChild(el);
 })(d)}
 }
@@ -250,29 +241,24 @@ window.openModal=function(y,m,d){
 selectedDate=formatDate(y,m,d);
 tempDrinks=records[selectedDate]?JSON.parse(JSON.stringify(records[selectedDate])):[];
 hasExistingRecord=records[selectedDate]&&records[selectedDate].length>0;
-selectedDrinkType=null;glassCount=1;selectedUnit='잔';
+selectedDrinkType=null;glassCount=1;selectedUnit='병';
 var da=['일','월','화','수','목','금','토'];
 document.getElementById('modal-date').textContent=y+'년 '+(m+1)+'월 '+d+'일 ('+da[new Date(y,m,d).getDay()]+')';
 document.getElementById('glass-value').textContent='1';
 document.querySelectorAll('.drink-type-btn').forEach(function(b){b.classList.remove('selected')});
-document.querySelectorAll('.unit-btn').forEach(function(b){b.classList.remove('active')});
-document.querySelector('.unit-btn[data-unit="잔"]').classList.add('active');
 renderTempDrinks();
 document.getElementById('modal-overlay').classList.add('active');
 };
 window.closeModal=function(){document.getElementById('modal-overlay').classList.remove('active')};
 window.selectDrinkType=function(el){document.querySelectorAll('.drink-type-btn').forEach(function(b){b.classList.remove('selected')});el.classList.add('selected');selectedDrinkType=el.dataset.type};
-window.selectUnit=function(el){document.querySelectorAll('.unit-btn').forEach(function(b){b.classList.remove('active')});el.classList.add('active');selectedUnit=el.dataset.unit};
 window.changeGlass=function(delta){glassCount=Math.max(1,Math.min(99,glassCount+delta));document.getElementById('glass-value').textContent=glassCount};
 window.addDrinkToList=function(){
 if(!selectedDrinkType){showToast('주종을 선택해주세요!');return}
-var ex=null;for(var i=0;i<tempDrinks.length;i++){if(tempDrinks[i].type===selectedDrinkType&&tempDrinks[i].unit===selectedUnit){ex=tempDrinks[i];break}}
+var ex=null;for(var i=0;i<tempDrinks.length;i++){if(tempDrinks[i].type===selectedDrinkType){ex=tempDrinks[i];break}}
 if(ex)ex.glasses+=glassCount;else tempDrinks.push({type:selectedDrinkType,glasses:glassCount,unit:selectedUnit});
-selectedDrinkType=null;glassCount=1;selectedUnit='잔';
+selectedDrinkType=null;glassCount=1;selectedUnit='병';
 document.getElementById('glass-value').textContent='1';
 document.querySelectorAll('.drink-type-btn').forEach(function(b){b.classList.remove('selected')});
-document.querySelectorAll('.unit-btn').forEach(function(b){b.classList.remove('active')});
-document.querySelector('.unit-btn[data-unit="잔"]').classList.add('active');
 renderTempDrinks();
 };
 
