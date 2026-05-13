@@ -1,771 +1,302 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🍺 나의 음주 생활기 - 음주 기록 트래커</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
-            background: linear-gradient(180deg, #f0f4ff 0%, #faf5ff 50%, #fff5f5 100%);
-            color: #2d3748;
-            min-height: 100vh;
-            transition: background 0.5s ease;
-        }
-
-        body.warning-bg {
-            background: linear-gradient(180deg, #fff0f0 0%, #ffe0e0 50%, #ffd0d0 100%);
-        }
-
-        .container { max-width: 480px; margin: 0 auto; padding: 16px; }
-
-        /* ── 동기화 ── */
-        .sync-dot {
-            display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-            margin-left: 6px; vertical-align: middle;
-        }
-        .sync-dot.synced { background: #48bb78; }
-        .sync-dot.syncing { background: #ed8936; animation: pulse 1s infinite; }
-        .sync-dot.offline { background: #e53e3e; }
-        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-        /* ── 헤더 ── */
-        .header { text-align: center; padding: 24px 0 16px; }
-        .header h1 {
-            font-size: 1.6em; font-weight: 800;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            background-clip: text; margin-bottom: 4px;
-        }
-        .header p { font-size: 0.85em; color: #a0aec0; }
-
-        /* ── 경고 배너 ── */
-        .warning-banner {
-            display: none; background: linear-gradient(135deg, #fed7d7, #feb2b2);
-            border: 1px solid #fc8181; border-radius: 12px;
-            padding: 10px 14px; margin-bottom: 16px; text-align: center;
-            font-size: 0.8em; color: #c53030; font-weight: 600;
-            animation: warningPulse 2s ease-in-out infinite;
-        }
-        .warning-banner.active { display: block; }
-        @keyframes warningPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
-
-        /* ── 통계 카드 ── */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-
-        .stat-card {
-            background: white; border-radius: 14px; padding: 14px 10px;
-            text-align: center; border: 1px solid #e2e8f0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-        .stat-card .stat-icon { font-size: 1.5em; margin-bottom: 4px; }
-        .stat-card .stat-value { font-size: 1.4em; font-weight: 700; color: #667eea; }
-        .stat-card .stat-label { font-size: 0.7em; color: #a0aec0; margin-top: 2px; }
-        .stat-card.warning .stat-value { color: #e53e3e; }
-
-        /* ── 리밋 설정 ── */
-        .limit-section {
-            display: flex; align-items: center; justify-content: center;
-            gap: 8px; margin-bottom: 16px; font-size: 0.8em; color: #718096;
-        }
-        .limit-section input {
-            width: 44px; text-align: center; border: 2px solid #e2e8f0;
-            border-radius: 8px; padding: 4px; font-size: 0.9em; font-weight: 700;
-            color: #667eea; background: white; outline: none;
-        }
-        .limit-section input:focus { border-color: #667eea; }
-
-        /* ── 캘린더 ── */
-        .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-
-        .calendar-nav button {
-            background: white; border: 1px solid #e2e8f0; color: #4a5568;
-            padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: 1em;
-            transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .calendar-nav button:hover { border-color: #667eea; background: #f0f4ff; }
-        .calendar-nav .month-title { font-size: 1.15em; font-weight: 700; color: #2d3748; }
-
-        .calendar {
-            background: white; border-radius: 16px; padding: 14px;
-            margin-bottom: 20px; border: 1px solid #e2e8f0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-
-        .calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 8px; }
-        .calendar-weekdays span { font-size: 0.75em; color: #a0aec0; padding: 4px 0; font-weight: 600; }
-        .calendar-weekdays span:first-child { color: #e53e3e; }
-        .calendar-weekdays span:last-child { color: #3182ce; }
-
-        .calendar-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-
-        .calendar-day {
-            aspect-ratio: 1; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; border-radius: 10px;
-            cursor: pointer; font-size: 0.85em; transition: all 0.2s;
-            position: relative; border: 2px solid transparent;
-        }
-        .calendar-day:hover { background: #f0f4ff; }
-        .calendar-day.empty { cursor: default; }
-        .calendar-day.today { border-color: #667eea; }
-        .calendar-day.has-record { background: #f0f4ff; }
-        .calendar-day.has-record .day-number { color: #667eea; font-weight: 700; }
-        .calendar-day .day-number { font-size: 0.85em; line-height: 1; color: #4a5568; }
-        .calendar-day .day-icon { font-size: 0.7em; margin-top: 1px; }
-        .calendar-day.sunday .day-number { color: #e53e3e; }
-        .calendar-day.saturday .day-number { color: #3182ce; }
-        .calendar-day.future { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
-        .calendar-day.selected { border-color: #764ba2; background: rgba(118,75,162,0.08); }
-
-        /* ── 날짜 요약 ── */
-        .day-summary {
-            background: white; border-radius: 16px; padding: 16px;
-            margin-bottom: 20px; border: 1px solid #e2e8f0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-        .day-summary-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .day-summary-header h3 { font-size: 0.95em; color: #2d3748; }
-        .day-summary-edit {
-            background: linear-gradient(135deg, #667eea, #764ba2); border: none; color: white;
-            padding: 5px 14px; border-radius: 8px; font-size: 0.75em; font-weight: 600;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .day-summary-edit:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
-        .day-summary-drinks { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-
-        .drink-tag {
-            background: #f0f4ff; color: #667eea;
-            padding: 5px 10px; border-radius: 8px; font-size: 0.8em; font-weight: 600;
-            border: 1px solid #e2e8f0;
-        }
-        .day-summary-total { font-size: 0.8em; color: #a0aec0; text-align: right; }
-        .day-summary-empty { text-align: center; color: #a0aec0; font-size: 0.85em; padding: 8px 0; }
-
-        /* ── 모달 ── */
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.35); backdrop-filter: blur(2px);
-            z-index: 100; justify-content: center; align-items: flex-end;
-        }
-        .modal-overlay.active { display: flex; }
-
-        .modal {
-            background: white; border-radius: 20px 20px 0 0;
-            padding: 24px 20px 32px; width: 100%; max-width: 480px;
-            max-height: 85vh; overflow-y: auto; animation: slideUp 0.3s ease;
-        }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .modal-header h3 { font-size: 1.1em; color: #2d3748; }
-        .modal-close { background: #f7fafc; border: none; color: #718096; font-size: 1.2em; cursor: pointer; padding: 6px 10px; border-radius: 50%; }
-        .modal-close:hover { background: #edf2f7; }
-        .modal-date { text-align: center; font-size: 0.9em; color: #718096; margin-bottom: 16px; }
-
-        .drink-type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
-
-        .drink-type-btn {
-            background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 12px;
-            padding: 12px 8px; cursor: pointer; text-align: center; transition: all 0.2s;
-        }
-        .drink-type-btn:hover { border-color: #667eea; background: #f0f4ff; }
-        .drink-type-btn.selected { border-color: #667eea; background: #f0f4ff; }
-        .drink-type-btn .drink-emoji { font-size: 1.5em; display: block; margin-bottom: 4px; }
-        .drink-type-btn .drink-name { font-size: 0.75em; color: #718096; }
-
-        .unit-section { margin-bottom: 12px; }
-        .unit-section label { font-size: 0.85em; color: #718096; display: block; margin-bottom: 8px; }
-        .unit-toggle { display: flex; gap: 8px; justify-content: center; }
-        .unit-btn {
-            padding: 6px 20px; border: 2px solid #e2e8f0; border-radius: 10px;
-            background: white; font-size: 0.85em; font-weight: 600; color: #718096;
-            cursor: pointer; transition: all 0.15s;
-        }
-        .unit-btn:hover { border-color: #667eea; color: #667eea; }
-        .unit-btn.active { border-color: #667eea; background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
-
-        .glass-section { margin-bottom: 20px; }
-        .glass-section label { font-size: 0.85em; color: #718096; display: block; margin-bottom: 8px; }
-        .glass-counter { display: flex; align-items: center; justify-content: center; gap: 20px; }
-
-        .glass-counter button {
-            width: 44px; height: 44px; border-radius: 50%; border: 2px solid #667eea;
-            background: transparent; color: #667eea; font-size: 1.3em;
-            cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;
-        }
-        .glass-counter button:hover { background: #f0f4ff; }
-        .glass-counter .glass-value { font-size: 2em; font-weight: 700; color: #667eea; min-width: 60px; text-align: center; }
-
-        .added-drinks { margin-bottom: 16px; }
-        .added-drink-item {
-            display: flex; justify-content: space-between; align-items: center;
-            background: #f7fafc; padding: 10px 14px; border-radius: 10px; margin-bottom: 6px;
-        }
-        .added-drink-item span { font-size: 0.85em; color: #2d3748; }
-        .added-drink-item button { background: none; border: none; color: #e53e3e; cursor: pointer; font-size: 0.85em; }
-
-        .save-btn {
-            width: 100%; padding: 14px; border: none; border-radius: 12px;
-            background: linear-gradient(135deg, #667eea, #764ba2); color: white;
-            font-size: 1em; font-weight: 700; cursor: pointer; transition: all 0.2s;
-        }
-        .save-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
-        .save-btn:disabled { background: #e2e8f0; color: #a0aec0; cursor: not-allowed; transform: none; box-shadow: none; }
-
-        .add-drink-btn {
-            width: 100%; padding: 10px; border: 2px dashed #e2e8f0; border-radius: 10px;
-            background: transparent; color: #a0aec0; font-size: 0.85em;
-            cursor: pointer; margin-bottom: 16px; transition: all 0.2s;
-        }
-        .add-drink-btn:hover { border-color: #667eea; color: #667eea; }
-
-        /* ── 연간 그래프 ── */
-        .yearly-summary {
-            background: white; border-radius: 16px; padding: 16px;
-            margin-bottom: 20px; border: 1px solid #e2e8f0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-        .yearly-summary h3 { font-size: 0.9em; color: #2d3748; margin-bottom: 12px; text-align: center; }
-        .line-chart-container { width: 100%; overflow: hidden; }
-        .line-chart-container svg { width: 100%; height: auto; display: block; }
-
-        /* ── 기타 ── */
-        .footer { text-align: center; padding: 20px 0 40px; font-size: 0.7em; color: #a0aec0; }
-
-        .data-section { margin-top: 10px; text-align: center; }
-        .data-section button {
-            background: white; border: 1px solid #e2e8f0; color: #718096;
-            padding: 8px 16px; border-radius: 8px; cursor: pointer;
-            font-size: 0.75em; margin: 0 4px; transition: all 0.2s;
-        }
-        .data-section button:hover { color: #667eea; border-color: #667eea; }
-
-        .toast {
-            position: fixed; bottom: 30px; left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: linear-gradient(135deg, #667eea, #764ba2); color: white;
-            padding: 12px 24px; border-radius: 12px; font-size: 0.85em; font-weight: 600;
-            z-index: 200; transition: transform 0.3s ease; white-space: nowrap;
-            box-shadow: 0 4px 15px rgba(102,126,234,0.4);
-        }
-        .toast.show { transform: translateX(-50%) translateY(0); }
-
-        .empty-state { text-align: center; padding: 30px 0; color: #a0aec0; font-size: 0.85em; }
-        .empty-state .empty-icon { font-size: 2.5em; margin-bottom: 8px; opacity: 0.5; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>나의 음주 생활기</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans-serif;background:linear-gradient(180deg,#f0f4ff 0%,#faf5ff 50%,#fff5f5 100%);color:#2d3748;min-height:100vh;transition:background .5s ease}
+body.warning-bg{background:linear-gradient(180deg,#fff0f0 0%,#ffe0e0 50%,#ffd0d0 100%)}
+.container{max-width:480px;margin:0 auto;padding:16px}
+.sync-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-left:6px;vertical-align:middle}
+.sync-dot.synced{background:#48bb78}.sync-dot.syncing{background:#ed8936;animation:pulse 1s infinite}.sync-dot.offline{background:#e53e3e}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.header{text-align:center;padding:24px 0 16px}
+.header h1{font-size:1.6em;font-weight:800;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+.header p{font-size:.85em;color:#a0aec0}
+.warning-banner{display:none;background:linear-gradient(135deg,#fed7d7,#feb2b2);border:1px solid #fc8181;border-radius:12px;padding:10px 14px;margin-bottom:16px;text-align:center;font-size:.8em;color:#c53030;font-weight:600}
+.warning-banner.active{display:block}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px}
+.stat-card{background:white;border-radius:14px;padding:14px 10px;text-align:center;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.stat-card .stat-icon{font-size:1.5em;margin-bottom:4px}.stat-card .stat-value{font-size:1.4em;font-weight:700;color:#667eea}.stat-card .stat-label{font-size:.7em;color:#a0aec0;margin-top:2px}
+.stat-card.warning .stat-value{color:#e53e3e}
+.limit-section{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px;font-size:.8em;color:#718096}
+.limit-section input{width:44px;text-align:center;border:2px solid #e2e8f0;border-radius:8px;padding:4px;font-size:.9em;font-weight:700;color:#667eea;background:white;outline:none}
+.limit-section input:focus{border-color:#667eea}
+.calendar-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.calendar-nav button{background:white;border:1px solid #e2e8f0;color:#4a5568;padding:8px 14px;border-radius:10px;cursor:pointer;font-size:1em;transition:all .2s}
+.calendar-nav button:hover{border-color:#667eea;background:#f0f4ff}
+.calendar-nav .month-title{font-size:1.15em;font-weight:700;color:#2d3748}
+.calendar{background:white;border-radius:16px;padding:14px;margin-bottom:20px;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.calendar-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:8px}
+.calendar-weekdays span{font-size:.75em;color:#a0aec0;padding:4px 0;font-weight:600}
+.calendar-weekdays span:first-child{color:#e53e3e}.calendar-weekdays span:last-child{color:#3182ce}
+.calendar-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.calendar-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;cursor:pointer;font-size:.85em;transition:all .2s;border:2px solid transparent}
+.calendar-day:hover{background:#f0f4ff}.calendar-day.empty{cursor:default}.calendar-day.today{border-color:#667eea}
+.calendar-day.has-record{background:#f0f4ff}.calendar-day.has-record .day-number{color:#667eea;font-weight:700}
+.calendar-day .day-number{font-size:.85em;line-height:1;color:#4a5568}.calendar-day .day-icon{font-size:.7em;margin-top:1px}
+.calendar-day.sunday .day-number{color:#e53e3e}.calendar-day.saturday .day-number{color:#3182ce}
+.calendar-day.future{opacity:.25;cursor:not-allowed;pointer-events:none}
+.calendar-day.selected{border-color:#764ba2;background:rgba(118,75,162,.08)}
+.day-summary{background:white;border-radius:16px;padding:16px;margin-bottom:20px;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.day-summary-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.day-summary-header h3{font-size:.95em;color:#2d3748}
+.day-summary-edit{background:linear-gradient(135deg,#667eea,#764ba2);border:none;color:white;padding:5px 14px;border-radius:8px;font-size:.75em;font-weight:600;cursor:pointer}
+.day-summary-drinks{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.drink-tag{background:#f0f4ff;color:#667eea;padding:5px 10px;border-radius:8px;font-size:.8em;font-weight:600;border:1px solid #e2e8f0}
+.day-summary-total{font-size:.8em;color:#a0aec0;text-align:right}
+.day-summary-empty{text-align:center;color:#a0aec0;font-size:.85em;padding:8px 0}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.35);backdrop-filter:blur(2px);z-index:100;justify-content:center;align-items:flex-end}
+.modal-overlay.active{display:flex}
+.modal{background:white;border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.modal-header h3{font-size:1.1em;color:#2d3748}
+.modal-close{background:#f7fafc;border:none;color:#718096;font-size:1.2em;cursor:pointer;padding:6px 10px;border-radius:50%}
+.modal-date{text-align:center;font-size:.9em;color:#718096;margin-bottom:16px}
+.drink-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
+.drink-type-btn{background:#f7fafc;border:2px solid #e2e8f0;border-radius:12px;padding:12px 8px;cursor:pointer;text-align:center;transition:all .2s}
+.drink-type-btn:hover{border-color:#667eea;background:#f0f4ff}.drink-type-btn.selected{border-color:#667eea;background:#f0f4ff}
+.drink-type-btn .drink-emoji{font-size:1.5em;display:block;margin-bottom:4px}.drink-type-btn .drink-name{font-size:.75em;color:#718096}
+.unit-section{margin-bottom:12px}.unit-section label{font-size:.85em;color:#718096;display:block;margin-bottom:8px}
+.unit-toggle{display:flex;gap:8px;justify-content:center}
+.unit-btn{padding:6px 20px;border:2px solid #e2e8f0;border-radius:10px;background:white;font-size:.85em;font-weight:600;color:#718096;cursor:pointer;transition:all .15s}
+.unit-btn:hover{border-color:#667eea;color:#667eea}
+.unit-btn.active{border-color:#667eea;background:linear-gradient(135deg,#667eea,#764ba2);color:white}
+.glass-section{margin-bottom:20px}.glass-section label{font-size:.85em;color:#718096;display:block;margin-bottom:8px}
+.glass-counter{display:flex;align-items:center;justify-content:center;gap:20px}
+.glass-counter button{width:44px;height:44px;border-radius:50%;border:2px solid #667eea;background:transparent;color:#667eea;font-size:1.3em;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.glass-counter .glass-value{font-size:2em;font-weight:700;color:#667eea;min-width:60px;text-align:center}
+.added-drinks{margin-bottom:16px}
+.added-drink-item{display:flex;justify-content:space-between;align-items:center;background:#f7fafc;padding:10px 14px;border-radius:10px;margin-bottom:6px}
+.added-drink-item span{font-size:.85em;color:#2d3748}.added-drink-item button{background:none;border:none;color:#e53e3e;cursor:pointer;font-size:.85em}
+.save-btn{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;font-size:1em;font-weight:700;cursor:pointer}
+.save-btn:disabled{background:#e2e8f0;color:#a0aec0;cursor:not-allowed}
+.add-drink-btn{width:100%;padding:10px;border:2px dashed #e2e8f0;border-radius:10px;background:transparent;color:#a0aec0;font-size:.85em;cursor:pointer;margin-bottom:16px}
+.add-drink-btn:hover{border-color:#667eea;color:#667eea}
+.yearly-summary{background:white;border-radius:16px;padding:16px;margin-bottom:20px;border:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.yearly-summary h3{font-size:.9em;color:#2d3748;margin-bottom:12px;text-align:center}
+.line-chart-container{width:100%;overflow:hidden}.line-chart-container svg{width:100%;height:auto;display:block}
+.footer{text-align:center;padding:20px 0 40px;font-size:.7em;color:#a0aec0}
+.data-section{margin-top:10px;text-align:center}
+.data-section button{background:white;border:1px solid #e2e8f0;color:#718096;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:.75em;margin:0 4px}
+.data-section button:hover{color:#667eea;border-color:#667eea}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:12px 24px;border-radius:12px;font-size:.85em;font-weight:600;z-index:200;transition:transform .3s ease;white-space:nowrap;box-shadow:0 4px 15px rgba(102,126,234,.4)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🍺 나의 음주 생활기<span class="sync-dot" id="sync-dot"></span></h1>
-            <p>오늘도 한 잔의 기록</p>
-        </div>
-
-        <!-- 경고 배너 -->
-        <div class="warning-banner" id="warning-banner"></div>
-
-        <!-- 통계 카드 -->
-        <div class="stats-grid">
-            <div class="stat-card" id="stat-days-card">
-                <div class="stat-icon">📅</div>
-                <div class="stat-value" id="stat-days">0</div>
-                <div class="stat-label">이번 달 음주일</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">🍻</div>
-                <div class="stat-value" id="stat-glasses">0</div>
-                <div class="stat-label">이번 달 총 잔</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">🔥</div>
-                <div class="stat-value" id="stat-streak">0</div>
-                <div class="stat-label">연속 금주일</div>
-            </div>
-        </div>
-
-        <!-- 리밋 설정 -->
-        <div class="limit-section">
-            <span>이번 달 음주일 경고:</span>
-            <input type="number" id="limit-input" min="1" max="31" value="5">
-            <span>일</span>
-        </div>
-
-        <!-- 캘린더 -->
-        <div class="calendar-nav">
-            <button id="prev-month">◀</button>
-            <span class="month-title" id="month-title"></span>
-            <button id="next-month">▶</button>
-        </div>
-
-        <div class="calendar">
-            <div class="calendar-weekdays">
-                <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
-            </div>
-            <div class="calendar-days" id="calendar-days"></div>
-        </div>
-
-        <!-- 선택한 날짜 요약 -->
-        <div class="day-summary" id="day-summary">
-            <div id="day-summary-content">
-                <div class="day-summary-empty">날짜를 선택하면 해당 날의 기록을 볼 수 있습니다</div>
-            </div>
-        </div>
-
-        <!-- 연간 요약 -->
-        <div class="yearly-summary">
-            <h3 id="yearly-title">2026년 월별 음주량</h3>
-            <div class="line-chart-container" id="yearly-chart"></div>
-        </div>
-
-        <div class="data-section">
-            <button onclick="exportData()">📤 데이터 내보내기</button>
-            <button onclick="document.getElementById('import-file').click()">📥 데이터 불러오기</button>
-            <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
-        </div>
-
-        <div class="footer">나의 음주 생활기 v2.0 · 2025.05.13 릴리즈 · 건강한 음주 습관을 위해 🍺</div>
-    </div>
-
-    <!-- 기록 모달 -->
-    <div class="modal-overlay" id="modal-overlay">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>🍺 음주 기록</h3>
-                <button class="modal-close" onclick="closeModal()">✕</button>
-            </div>
-            <div class="modal-date" id="modal-date"></div>
-
-            <div class="drink-type-grid">
-                <button class="drink-type-btn" data-type="soju" onclick="selectDrinkType(this)">
-                    <span class="drink-emoji">🍶</span><span class="drink-name">소주</span>
-                </button>
-                <button class="drink-type-btn" data-type="beer" onclick="selectDrinkType(this)">
-                    <span class="drink-emoji">🍺</span><span class="drink-name">맥주</span>
-                </button>
-                <button class="drink-type-btn" data-type="wine" onclick="selectDrinkType(this)">
-                    <span class="drink-emoji">🍷</span><span class="drink-name">와인</span>
-                </button>
-                <button class="drink-type-btn" data-type="makgeolli" onclick="selectDrinkType(this)">
-                    <span class="drink-emoji">🥛</span><span class="drink-name">막걸리</span>
-                </button>
-                <button class="drink-type-btn" data-type="whiskey" onclick="selectDrinkType(this)">
-                    <span class="drink-emoji">🥃</span><span class="drink-name">위스키</span>
-                </button>
-                <button class="drink-type-btn" data-type="cocktail" onclick="selectDrinkType(this)">
-                    <span class="drink-emoji">🍸</span><span class="drink-name">칵테일</span>
-                </button>
-                <button class="drink-type-btn" data-type="highball" onclick="selectDrinkType(this)">
-                    <span class="drink-emoji">🧊</span><span class="drink-name">하이볼</span>
-                </button>
-                <button class="drink-type-btn" data-type="sake" onclick="selectDrinkType(this)">
-                    <span class="drink-emoji">🍶</span><span class="drink-name">사케</span>
-                </button>
-                <button class="drink-type-btn" data-type="etc" onclick="selectDrinkType(this)">
-                    <span class="drink-emoji">🫗</span><span class="drink-name">기타</span>
-                </button>
-            </div>
-
-            <div class="unit-section">
-                <label>단위</label>
-                <div class="unit-toggle">
-                    <button class="unit-btn active" data-unit="잔" onclick="selectUnit(this)">🥃 잔</button>
-                    <button class="unit-btn" data-unit="병" onclick="selectUnit(this)">🍾 병</button>
-                </div>
-            </div>
-
-            <div class="glass-section">
-                <label>수량</label>
-                <div class="glass-counter">
-                    <button onclick="changeGlass(-1)">−</button>
-                    <div class="glass-value" id="glass-value">1</div>
-                    <button onclick="changeGlass(1)">+</button>
-                </div>
-            </div>
-
-            <button class="add-drink-btn" onclick="addDrinkToList()">+ 이 주종 추가</button>
-            <div class="added-drinks" id="added-drinks"></div>
-            <button class="save-btn" id="save-btn" onclick="saveRecord()" disabled>기록 저장</button>
-            <button class="save-btn" id="delete-btn" onclick="deleteRecordFromModal()" style="display:none; background:linear-gradient(135deg,#e53e3e,#c53030); margin-top:8px;">이 날 기록 삭제</button>
-        </div>
-    </div>
-
-    <div class="toast" id="toast"></div>
-
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js';
-        import { getFirestore, doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js';
-
-        const app = initializeApp({
-            apiKey: "AIzaSyCrpRzaJvvK1Zwx3VBS1njj7aQ4qoIz3tQ",
-            authDomain: "k-drink-270f3.firebaseapp.com",
-            projectId: "k-drink-270f3",
-            storageBucket: "k-drink-270f3.firebasestorage.app",
-            messagingSenderId: "217678075487",
-            appId: "1:217678075487:web:d49ad7fd1c3b998cfaedea"
-        });
-        const db = getFirestore(app);
-        const DOC_ID = 'default_user';
-
-        // ───── 상태 ─────
-        let currentYear, currentMonth;
-        let records = {};
-        let selectedDate = null;
-        let selectedCalendarDate = null;
-        let selectedDrinkType = null;
-        let glassCount = 1;
-        let selectedUnit = '잔';
-        let tempDrinks = [];
-        let drinkLimit = parseInt(localStorage.getItem('drink-limit') || '5');
-
-        const DRINK_INFO = {
-            soju: { emoji: '🍶', name: '소주' }, beer: { emoji: '🍺', name: '맥주' },
-            wine: { emoji: '🍷', name: '와인' }, makgeolli: { emoji: '🥛', name: '막걸리' },
-            whiskey: { emoji: '🥃', name: '위스키' }, cocktail: { emoji: '🍸', name: '칵테일' },
-            highball: { emoji: '🧊', name: '하이볼' }, sake: { emoji: '🍶', name: '사케' },
-            etc: { emoji: '🫗', name: '기타' }
-        };
-
-        // ───── 리밋 설정 ─────
-        const limitInput = document.getElementById('limit-input');
-        limitInput.value = drinkLimit;
-        limitInput.addEventListener('input', () => {
-            const val = parseInt(limitInput.value);
-            if (!val || val < 1) return;
-            drinkLimit = Math.min(31, val);
-            localStorage.setItem('drink-limit', drinkLimit);
-            renderStats();
-        });
-        limitInput.addEventListener('blur', () => {
-            limitInput.value = drinkLimit;
-        });
-
-        // ───── 동기화 ─────
-        function setSyncDot(state) {
-            document.getElementById('sync-dot').className = 'sync-dot ' + state;
-        }
-
-        function subscribeToFirestore() {
-            setSyncDot('syncing');
-            onSnapshot(doc(db, 'drinks', DOC_ID),
-                (snap) => {
-                    if (snap.exists()) records = snap.data().records || {};
-                    setSyncDot('synced');
-                    render();
-                },
-                (error) => {
-                    console.warn('Firestore 구독 실패:', error);
-                    setSyncDot('offline');
-                    loadLocal(); render();
-                }
-            );
-        }
-
-        async function saveData() {
-            localStorage.setItem('drink-tracker-records', JSON.stringify(records));
-            setSyncDot('syncing');
-            try {
-                await setDoc(doc(db, 'drinks', DOC_ID), { records, updatedAt: new Date().toISOString() });
-                setSyncDot('synced');
-            } catch (e) { console.warn('저장 실패:', e); setSyncDot('offline'); }
-        }
-
-        function loadLocal() {
-            try { const s = localStorage.getItem('drink-tracker-records'); if (s) records = JSON.parse(s); }
-            catch (e) { records = {}; }
-        }
-
-        // ───── 앱 시작 ─────
-        const now = new Date();
-        currentYear = now.getFullYear();
-        currentMonth = now.getMonth();
-        selectedCalendarDate = formatDate(currentYear, currentMonth, now.getDate());
-        loadLocal(); render(); subscribeToFirestore();
-
-        // ───── 렌더링 ─────
-        function render() {
-            renderCalendar(); renderStats(); renderDaySummary(); renderYearlyChart();
-        }
-
-        function renderCalendar() {
-            document.getElementById('month-title').textContent = `${currentYear}년 ${currentMonth + 1}월`;
-            const container = document.getElementById('calendar-days');
-            container.innerHTML = '';
-            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-            const today = new Date();
-
-            for (let i = 0; i < firstDay; i++) {
-                const el = document.createElement('div');
-                el.className = 'calendar-day empty';
-                container.appendChild(el);
-            }
-
-            for (let d = 1; d <= daysInMonth; d++) {
-                const el = document.createElement('div');
-                const dateKey = formatDate(currentYear, currentMonth, d);
-                const dow = new Date(currentYear, currentMonth, d).getDay();
-                const isToday = today.getFullYear() === currentYear && today.getMonth() === currentMonth && today.getDate() === d;
-                const thisDate = new Date(currentYear, currentMonth, d);
-                thisDate.setHours(23,59,59,999);
-                const isFuture = thisDate > today && !isToday;
-                const hasRecord = records[dateKey] && records[dateKey].length > 0;
-
-                let cls = 'calendar-day';
-                if (isToday) cls += ' today';
-                if (hasRecord) cls += ' has-record';
-                if (dow === 0) cls += ' sunday';
-                if (dow === 6) cls += ' saturday';
-                if (isFuture) cls += ' future';
-                if (selectedCalendarDate === dateKey) cls += ' selected';
-
-                let inner = `<span class="day-number">${d}</span>`;
-                if (hasRecord) {
-                    const total = records[dateKey].reduce((s, dr) => s + dr.glasses, 0);
-                    const main = records[dateKey][0];
-                    inner += `<span class="day-icon">${DRINK_INFO[main.type]?.emoji || '🍺'}${total > 1 ? total : ''}</span>`;
-                }
-                el.className = cls;
-                el.innerHTML = inner;
-                if (!isFuture) {
-                    el.addEventListener('click', () => {
-                        selectedCalendarDate = dateKey;
-                        renderCalendar(); renderDaySummary();
-                    });
-                    el.addEventListener('dblclick', () => openModal(currentYear, currentMonth, d));
-                }
-                container.appendChild(el);
-            }
-        }
-
-        function renderStats() {
-            let drinkDays = 0, totalGlasses = 0;
-            const dim = new Date(currentYear, currentMonth + 1, 0).getDate();
-            for (let d = 1; d <= dim; d++) {
-                const key = formatDate(currentYear, currentMonth, d);
-                if (records[key] && records[key].length > 0) {
-                    drinkDays++;
-                    totalGlasses += records[key].reduce((s, dr) => s + dr.glasses, 0);
-                }
-            }
-
-            const today = new Date(); today.setHours(0,0,0,0);
-            let streak = 0, check = new Date(today);
-            while (streak <= 365) {
-                const key = formatDate(check.getFullYear(), check.getMonth(), check.getDate());
-                if (records[key] && records[key].length > 0) break;
-                streak++; check.setDate(check.getDate() - 1);
-            }
-
-            document.getElementById('stat-days').textContent = drinkDays;
-            document.getElementById('stat-glasses').textContent = totalGlasses;
-            document.getElementById('stat-streak').textContent = streak;
-
-            // 경고 리밋 체크
-            const card = document.getElementById('stat-days-card');
-            const banner = document.getElementById('warning-banner');
-            const isCurrentMonth = currentYear === now.getFullYear() && currentMonth === now.getMonth();
-
-            if (isCurrentMonth && drinkDays > drinkLimit) {
-                card.classList.add('warning');
-                banner.textContent = `⚠️ 이번 달 음주일(${drinkDays}일)이 목표(${drinkLimit}일)를 초과했습니다!`;
-                banner.classList.add('active');
-                document.body.classList.add('warning-bg');
-            } else {
-                card.classList.remove('warning');
-                banner.classList.remove('active');
-                document.body.classList.remove('warning-bg');
-            }
-        }
-
-        function renderDaySummary() {
-            const container = document.getElementById('day-summary-content');
-            if (!selectedCalendarDate) {
-                container.innerHTML = `<div class="day-summary-empty">날짜를 선택하면 해당 날의 기록을 볼 수 있습니다</div>`;
-                return;
-            }
-
-            const parts = selectedCalendarDate.split('-');
-            const y = parseInt(parts[0]), m = parseInt(parts[1]) - 1, d = parseInt(parts[2]);
-            const dow = ['일','월','화','수','목','금','토'][new Date(y, m, d).getDay()];
-            const dateLabel = `${m+1}월 ${d}일 (${dow})`;
-            const dayRecords = records[selectedCalendarDate];
-
-            if (!dayRecords || !dayRecords.length) {
-                container.innerHTML = `
-                    <div class="day-summary-header"><h3>📋 ${dateLabel}</h3>
-                    <button class="day-summary-edit" onclick="openModal(${y},${m},${d})">+ 기록하기</button></div>
-                    <div class="day-summary-empty">이 날은 음주 기록이 없습니다</div>`;
-                return;
-            }
-
-            const totalGlasses = dayRecords.reduce((s, dr) => s + dr.glasses, 0);
-            const tags = dayRecords.map(dr => {
-                const info = DRINK_INFO[dr.type] || { emoji: '🍺', name: dr.type };
-                const unit = dr.unit || '잔';
-                return `<span class="drink-tag">${info.emoji} ${info.name} ${dr.glasses}${unit}</span>`;
-            }).join('');
-
-            container.innerHTML = `
-                <div class="day-summary-header"><h3>📋 ${dateLabel}</h3>
-                <button class="day-summary-edit" onclick="openModal(${y},${m},${d})">수정</button></div>
-                <div class="day-summary-drinks">${tags}</div>
-                <div class="day-summary-total">총 ${totalGlasses}잔</div>`;
-        }
-
-        function renderYearlyChart() {
-            document.getElementById('yearly-title').textContent = `${currentYear}년 월별 음주량`;
-            const container = document.getElementById('yearly-chart');
-            const data = []; let max = 0;
-
-            for (let m = 0; m < 12; m++) {
-                let total = 0;
-                const dim = new Date(currentYear, m + 1, 0).getDate();
-                for (let d = 1; d <= dim; d++) {
-                    const key = formatDate(currentYear, m, d);
-                    if (records[key]) total += records[key].reduce((s, dr) => s + dr.glasses, 0);
-                }
-                data.push(total);
-                if (total > max) max = total;
-            }
-
-            const W = 420, H = 130, PX = 30, PY = 15, PB = 20;
-            const chartW = W - PX * 2, chartH = H - PY - PB;
-            const maxVal = max || 1;
-
-            const points = data.map((v, i) => ({
-                x: PX + (i / 11) * chartW,
-                y: PY + chartH - (v / maxVal) * chartH, v, i
-            }));
-
-            const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-            const areaPath = linePath + ` L${points[11].x.toFixed(1)},${PY + chartH} L${points[0].x.toFixed(1)},${PY + chartH} Z`;
-
-            const yTicks = max > 0 ? [0, Math.round(maxVal / 2), maxVal] : [0];
-            const yTicksHtml = yTicks.map(v => {
-                const y = PY + chartH - (v / maxVal) * chartH;
-                return `<line x1="${PX}" y1="${y}" x2="${PX + chartW}" y2="${y}" stroke="#e2e8f0" stroke-width="1"/>
-                        <text x="${PX - 4}" y="${y + 3}" text-anchor="end" fill="#a0aec0" font-size="8">${v}</text>`;
-            }).join('');
-
-            const xLabels = points.map(p =>
-                `<text x="${p.x}" y="${H - 4}" text-anchor="middle" fill="#a0aec0" font-size="8">${p.i + 1}월</text>`
-            ).join('');
-
-            const dots = points.map(p => {
-                const isCurrent = p.i === currentMonth;
-                const r = isCurrent ? 4 : 3;
-                const fill = isCurrent ? '#667eea' : '#667eea66';
-                let label = '';
-                if (p.v > 0) label = `<text x="${p.x}" y="${p.y - 8}" text-anchor="middle" fill="#4a5568" font-size="8" font-weight="${isCurrent ? '700' : '400'}">${p.v}</text>`;
-                return `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${fill}"/>${label}`;
-            }).join('');
-
-            container.innerHTML = `
-                <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-                    ${yTicksHtml}
-                    <path d="${areaPath}" fill="rgba(102,126,234,0.08)"/>
-                    <path d="${linePath}" fill="none" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    ${dots}${xLabels}
-                </svg>`;
-        }
-
-        // ───── 모달 ─────
-        let hasExistingRecord = false;
-
-        window.openModal = function(y, m, d) {
-            selectedDate = formatDate(y, m, d);
-            tempDrinks = records[selectedDate] ? JSON.parse(JSON.stringify(records[selectedDate])) : [];
-            hasExistingRecord = records[selectedDate] && records[selectedDate].length > 0;
-            selectedDrinkType = null; glassCount = 1; selectedUnit = '잔';
-
-            const dow = ['일','월','화','수','목','금','토'][new Date(y, m, d).getDay()];
-            document.getElementById('modal-date').textContent = `${y}년 ${m+1}월 ${d}일 (${dow})`;
-            document.getElementById('glass-value').textContent = '1';
-            document.querySelectorAll('.drink-type-btn').forEach(b => b.classList.remove('selected'));
-            document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
-            document.querySelector('.unit-btn[data-unit="잔"]').classList.add('active');
-            renderTempDrinks();
-            document.getElementById('modal-overlay').classList.add('active');
-        };
-
-        window.closeModal = () => document.getElementById('modal-overlay').classList.remove('active');
-
-        window.selectDrinkType = function(el) {
-            document.querySelectorAll('.drink-type-btn').forEach(b => b.classList.remove('selected'));
-            el.classList.add('selected');
-            selectedDrinkType = el.dataset.type;
-        };
-
-        window.selectUnit = function(el) {
-            document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
-            el.classList.add('active');
-            selectedUnit = el.dataset.unit;
-        };
-
-        window.changeGlass = function(delta) {
-            glassCount = Math.max(1, Math.min(99, glassCount + delta));
-            document.getElementById('glass-value').textContent = glassCount;
-        };
-
-        window.addDrinkToList = function() {
-            if (!selectedDrinkType) { showToast('주종을 선택해주세요!'); return; }
-            const ex = tempDrinks.find(d => d.type === selectedDrinkType && d.unit === selectedUnit);
-            if (ex) ex.glasses += glassCount;
-            else tempDrinks.push({ type: selectedDrinkType, glasses: glassCount, unit: selectedUnit });
-            selectedDrinkType = null; glassCount = 1; selectedUnit = '잔';
-            document.getElementById('glass-value').textContent = '1';
-            document.querySelectorAll('.drink-type-btn').forEach(b => b.classList.remove('selected'));
-            document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
-            document.querySelector('.unit-btn[data-unit="잔"]').classList.add('active');
-            renderTempDrinks();
-        };
-
-        function renderTempDrinks() {
-            const c = document.getElementById('added-drinks');
-            const saveBtn = document.getElementById('save-btn');
-            const delBtn = document.getElementById('delete-btn');
-            if (!tempDrinks.length) {
-                c.innerHTML = ''; saveBtn.disabled = true;
-                delBtn.style.display = hasExistingRecord ? 'block' : 'none';
-                return;
-            }
-            saveBtn.disabled = false; delBtn.style.display = 'none';
-            c.innerHTML = tempDrinks.map((dr, i) => {
-                const info = DRINK_INFO[dr.type] || { emoji: '🍺', name: dr.type };
-                const unit = dr.unit || '잔';
-                return `<div class="added-drink-item"><span>${info.emoji} ${info.name} ${dr.glasses}${unit}</span><button onclick="removeTempDrink(${i})">✕</button></div>`;
-            }).join('');
-        }
-
-        window.removeTempDrink = function(i) { tempDrinks.splice(i, 1); renderTempDrinks(); };
-
-        window.saveRecord = async function() {
-            if (!tempDrinks.length) return;
-            records[selectedDate] = [...tempDrinks];
-            await saveData(); closeModal(); render();
-            showToast('기록이 저장되었습니다! 🍺');
-        };
-
-        window.deleteRecord = async function(key) {
-            if (!confirm('이 날의 기록을 삭제할까요?')) return;
-            delete records[key]; await saveData(); render();
-            showToast('기록이 삭제되었습니다');
-        };
-
-        window.deleteRecordFromModal = async function() {
-            if (!confirm('이 날의 기록을 삭제할까요?')) return;
-            delete records[selectedDate]; await saveData(); closeModal(); render();
-            showToast('기록이 삭제되었습니다');
-        };
-
-        // ───── 유틸리티 ─────
-        function formatDate(y, m, d) {
-            return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        }
-
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.textContent = msg; t.classList.add('show');
-            setTimeout(() => t.class
+<div class="container">
+<div class="header">
+<h1>🍺 나의 음주 생활기<span class="sync-dot" id="sync-dot"></span></h1>
+<p>오늘도 한 잔의 기록</p>
+</div>
+<div class="warning-banner" id="warning-banner"></div>
+<div class="stats-grid">
+<div class="stat-card" id="stat-days-card"><div class="stat-icon">📅</div><div class="stat-value" id="stat-days">0</div><div class="stat-label">이번 달 음주일</div></div>
+<div class="stat-card"><div class="stat-icon">🍻</div><div class="stat-value" id="stat-glasses">0</div><div class="stat-label">이번 달 총 잔</div></div>
+<div class="stat-card"><div class="stat-icon">🔥</div><div class="stat-value" id="stat-streak">0</div><div class="stat-label">연속 금주일</div></div>
+</div>
+<div class="limit-section"><span>이번 달 음주일 경고:</span><input type="number" id="limit-input" min="1" max="31" value="5"><span>일</span></div>
+<div class="calendar-nav"><button id="prev-month">◀</button><span class="month-title" id="month-title"></span><button id="next-month">▶</button></div>
+<div class="calendar">
+<div class="calendar-weekdays"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+<div class="calendar-days" id="calendar-days"></div>
+</div>
+<div class="day-summary" id="day-summary"><div id="day-summary-content"><div class="day-summary-empty">날짜를 선택하면 해당 날의 기록을 볼 수 있습니다</div></div></div>
+<div class="yearly-summary"><h3 id="yearly-title"></h3><div class="line-chart-container" id="yearly-chart"></div></div>
+<div class="data-section">
+<button onclick="exportData()">📤 데이터 내보내기</button>
+<button onclick="document.getElementById('import-file').click()">📥 데이터 불러오기</button>
+<input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+</div>
+<div class="footer">나의 음주 생활기 v2.1 · 2025.05.13 릴리즈 · 건강한 음주 습관을 위해 🍺</div>
+</div>
+<div class="modal-overlay" id="modal-overlay"><div class="modal">
+<div class="modal-header"><h3>🍺 음주 기록</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+<div class="modal-date" id="modal-date"></div>
+<div class="drink-type-grid">
+<button class="drink-type-btn" data-type="soju" onclick="selectDrinkType(this)"><span class="drink-emoji">🍶</span><span class="drink-name">소주</span></button>
+<button class="drink-type-btn" data-type="beer" onclick="selectDrinkType(this)"><span class="drink-emoji">🍺</span><span class="drink-name">맥주</span></button>
+<button class="drink-type-btn" data-type="wine" onclick="selectDrinkType(this)"><span class="drink-emoji">🍷</span><span class="drink-name">와인</span></button>
+<button class="drink-type-btn" data-type="makgeolli" onclick="selectDrinkType(this)"><span class="drink-emoji">🥛</span><span class="drink-name">막걸리</span></button>
+<button class="drink-type-btn" data-type="whiskey" onclick="selectDrinkType(this)"><span class="drink-emoji">🥃</span><span class="drink-name">위스키</span></button>
+<button class="drink-type-btn" data-type="cocktail" onclick="selectDrinkType(this)"><span class="drink-emoji">🍸</span><span class="drink-name">칵테일</span></button>
+<button class="drink-type-btn" data-type="highball" onclick="selectDrinkType(this)"><span class="drink-emoji">🧊</span><span class="drink-name">하이볼</span></button>
+<button class="drink-type-btn" data-type="sake" onclick="selectDrinkType(this)"><span class="drink-emoji">🍶</span><span class="drink-name">사케</span></button>
+<button class="drink-type-btn" data-type="etc" onclick="selectDrinkType(this)"><span class="drink-emoji">🫗</span><span class="drink-name">기타</span></button>
+</div>
+<div class="unit-section"><label>단위</label><div class="unit-toggle">
+<button class="unit-btn active" data-unit="잔" onclick="selectUnit(this)">🥃 잔</button>
+<button class="unit-btn" data-unit="병" onclick="selectUnit(this)">🍾 병</button>
+</div></div>
+<div class="glass-section"><label>수량</label><div class="glass-counter">
+<button onclick="changeGlass(-1)">−</button><div class="glass-value" id="glass-value">1</div><button onclick="changeGlass(1)">+</button>
+</div></div>
+<button class="add-drink-btn" onclick="addDrinkToList()">+ 이 주종 추가</button>
+<div class="added-drinks" id="added-drinks"></div>
+<button class="save-btn" id="save-btn" onclick="saveRecord()" disabled>기록 저장</button>
+<button class="save-btn" id="delete-btn" onclick="deleteRecordFromModal()" style="display:none;background:linear-gradient(135deg,#e53e3e,#c53030);margin-top:8px">이 날 기록 삭제</button>
+</div></div>
+<div class="toast" id="toast"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+var db=null,DOC_ID='default_user';
+try{firebase.initializeApp({apiKey:"AIzaSyCrpRzaJvvK1Zwx3VBS1njj7aQ4qoIz3tQ",authDomain:"k-drink-270f3.firebaseapp.com",projectId:"k-drink-270f3",storageBucket:"k-drink-270f3.firebasestorage.app",messagingSenderId:"217678075487",appId:"1:217678075487:web:d49ad7fd1c3b998cfaedea"});db=firebase.firestore()}catch(e){console.warn(e)}
+
+var currentYear,currentMonth,records={},selectedDate=null,selectedCalendarDate=null;
+var selectedDrinkType=null,glassCount=1,selectedUnit='잔',tempDrinks=[],hasExistingRecord=false;
+var drinkLimit=parseInt(localStorage.getItem('drink-limit')||'5'),appNow=new Date();
+
+var DRINK_INFO={soju:{emoji:'🍶',name:'소주'},beer:{emoji:'🍺',name:'맥주'},wine:{emoji:'🍷',name:'와인'},makgeolli:{emoji:'🥛',name:'막걸리'},whiskey:{emoji:'🥃',name:'위스키'},cocktail:{emoji:'🍸',name:'칵테일'},highball:{emoji:'🧊',name:'하이볼'},sake:{emoji:'🍶',name:'사케'},etc:{emoji:'🫗',name:'기타'}};
+
+function formatDate(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+function setSyncDot(s){document.getElementById('sync-dot').className='sync-dot '+s}
+
+var limitInput=document.getElementById('limit-input');
+limitInput.value=drinkLimit;
+limitInput.addEventListener('input',function(){var v=parseInt(limitInput.value);if(!v||v<1)return;drinkLimit=Math.min(31,v);localStorage.setItem('drink-limit',drinkLimit);renderStats()});
+limitInput.addEventListener('blur',function(){limitInput.value=drinkLimit});
+
+function subscribeToFirestore(){
+if(!db){setSyncDot('offline');loadLocal();render();return}
+setSyncDot('syncing');
+db.collection('drinks').doc(DOC_ID).onSnapshot(function(snap){if(snap.exists)records=snap.data().records||{};setSyncDot('synced');render()},function(err){console.warn(err);setSyncDot('offline');loadLocal();render()})
+}
+
+function saveData(){
+localStorage.setItem('drink-tracker-records',JSON.stringify(records));
+if(!db){setSyncDot('offline');return Promise.resolve()}
+setSyncDot('syncing');
+return db.collection('drinks').doc(DOC_ID).set({records:records,updatedAt:new Date().toISOString()}).then(function(){setSyncDot('synced')}).catch(function(e){console.warn(e);setSyncDot('offline')})
+}
+
+function loadLocal(){try{var s=localStorage.getItem('drink-tracker-records');if(s)records=JSON.parse(s)}catch(e){records={}}}
+
+function render(){renderCalendar();renderStats();renderDaySummary();renderYearlyChart()}
+
+function renderCalendar(){
+document.getElementById('month-title').textContent=currentYear+'년 '+(currentMonth+1)+'월';
+var c=document.getElementById('calendar-days');c.innerHTML='';
+var firstDay=new Date(currentYear,currentMonth,1).getDay();
+var dim=new Date(currentYear,currentMonth+1,0).getDate();
+var today=new Date();
+for(var i=0;i<firstDay;i++){var e=document.createElement('div');e.className='calendar-day empty';c.appendChild(e)}
+for(var d=1;d<=dim;d++){(function(day){
+var el=document.createElement('div');
+var dk=formatDate(currentYear,currentMonth,day);
+var dow=new Date(currentYear,currentMonth,day).getDay();
+var isToday=today.getFullYear()===currentYear&&today.getMonth()===currentMonth&&today.getDate()===day;
+var td=new Date(currentYear,currentMonth,day,23,59,59);
+var isFut=td>today&&!isToday;
+var hasRec=records[dk]&&records[dk].length>0;
+var cls='calendar-day';
+if(isToday)cls+=' today';if(hasRec)cls+=' has-record';if(dow===0)cls+=' sunday';if(dow===6)cls+=' saturday';if(isFut)cls+=' future';if(selectedCalendarDate===dk)cls+=' selected';
+var inn='<span class="day-number">'+day+'</span>';
+if(hasRec){var tot=records[dk].reduce(function(s,dr){return s+dr.glasses},0);var mn=records[dk][0];var em=(DRINK_INFO[mn.type]&&DRINK_INFO[mn.type].emoji)||'🍺';inn+='<span class="day-icon">'+em+(tot>1?tot:'')+'</span>'}
+el.className=cls;el.innerHTML=inn;
+if(!isFut){el.addEventListener('click',function(){selectedCalendarDate=dk;renderCalendar();renderDaySummary()});el.addEventListener('dblclick',function(){openModal(currentYear,currentMonth,day)})}
+c.appendChild(el);
+})(d)}
+}
+
+function renderStats(){
+var drinkDays=0,totalGlasses=0;
+var dim=new Date(currentYear,currentMonth+1,0).getDate();
+for(var d=1;d<=dim;d++){var k=formatDate(currentYear,currentMonth,d);if(records[k]&&records[k].length>0){drinkDays++;totalGlasses+=records[k].reduce(function(s,dr){return s+dr.glasses},0)}}
+var today=new Date();today.setHours(0,0,0,0);var streak=0,ch=new Date(today);
+while(streak<=365){var sk=formatDate(ch.getFullYear(),ch.getMonth(),ch.getDate());if(records[sk]&&records[sk].length>0)break;streak++;ch.setDate(ch.getDate()-1)}
+document.getElementById('stat-days').textContent=drinkDays;
+document.getElementById('stat-glasses').textContent=totalGlasses;
+document.getElementById('stat-streak').textContent=streak;
+var card=document.getElementById('stat-days-card');var banner=document.getElementById('warning-banner');
+var isCur=currentYear===appNow.getFullYear()&&currentMonth===appNow.getMonth();
+if(isCur&&drinkDays>drinkLimit){card.classList.add('warning');banner.textContent='⚠️ 이번 달 음주일('+drinkDays+'일)이 목표('+drinkLimit+'일)를 초과했습니다!';banner.classList.add('active');document.body.classList.add('warning-bg')}
+else{card.classList.remove('warning');banner.classList.remove('active');document.body.classList.remove('warning-bg')}
+}
+
+function renderDaySummary(){
+var con=document.getElementById('day-summary-content');
+if(!selectedCalendarDate){con.innerHTML='<div class="day-summary-empty">날짜를 선택하면 해당 날의 기록을 볼 수 있습니다</div>';return}
+var p=selectedCalendarDate.split('-');var y=parseInt(p[0]),m=parseInt(p[1])-1,d=parseInt(p[2]);
+var da=['일','월','화','수','목','금','토'];var dow=da[new Date(y,m,d).getDay()];
+var dl=(m+1)+'월 '+d+'일 ('+dow+')';var dr=records[selectedCalendarDate];
+if(!dr||!dr.length){con.innerHTML='<div class="day-summary-header"><h3>📋 '+dl+'</h3><button class="day-summary-edit" onclick="openModal('+y+','+m+','+d+')">+ 기록하기</button></div><div class="day-summary-empty">이 날은 음주 기록이 없습니다</div>';return}
+var tg=dr.reduce(function(s,x){return s+x.glasses},0);
+var tags=dr.map(function(x){var info=DRINK_INFO[x.type]||{emoji:'🍺',name:x.type};var u=x.unit||'잔';return '<span class="drink-tag">'+info.emoji+' '+info.name+' '+x.glasses+u+'</span>'}).join('');
+con.innerHTML='<div class="day-summary-header"><h3>📋 '+dl+'</h3><button class="day-summary-edit" onclick="openModal('+y+','+m+','+d+')">수정</button></div><div class="day-summary-drinks">'+tags+'</div><div class="day-summary-total">총 '+tg+'잔</div>';
+}
+
+function renderYearlyChart(){
+document.getElementById('yearly-title').textContent=currentYear+'년 월별 음주량';
+var con=document.getElementById('yearly-chart');var data=[],max=0;
+for(var m=0;m<12;m++){var t=0;var dim=new Date(currentYear,m+1,0).getDate();for(var d=1;d<=dim;d++){var k=formatDate(currentYear,m,d);if(records[k])t+=records[k].reduce(function(s,x){return s+x.glasses},0)}data.push(t);if(t>max)max=t}
+var W=420,H=130,PX=30,PY=15,PB=20,cW=W-PX*2,cH=H-PY-PB,mv=max||1;
+var pts=[];for(var i=0;i<12;i++)pts.push({x:PX+(i/11)*cW,y:PY+cH-(data[i]/mv)*cH,v:data[i],i:i});
+var lp=pts.map(function(p,i){return(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)}).join(' ');
+var ap=lp+' L'+pts[11].x.toFixed(1)+','+(PY+cH)+' L'+pts[0].x.toFixed(1)+','+(PY+cH)+' Z';
+var yt=max>0?[0,Math.round(mv/2),mv]:[0];
+var yh=yt.map(function(v){var yy=PY+cH-(v/mv)*cH;return '<line x1="'+PX+'" y1="'+yy+'" x2="'+(PX+cW)+'" y2="'+yy+'" stroke="#e2e8f0" stroke-width="1"/><text x="'+(PX-4)+'" y="'+(yy+3)+'" text-anchor="end" fill="#a0aec0" font-size="8">'+v+'</text>'}).join('');
+var xl=pts.map(function(p){return '<text x="'+p.x+'" y="'+(H-4)+'" text-anchor="middle" fill="#a0aec0" font-size="8">'+(p.i+1)+'월</text>'}).join('');
+var dots=pts.map(function(p){var ic=p.i===currentMonth;var r=ic?4:3;var f=ic?'#667eea':'#667eea66';var lb='';if(p.v>0)lb='<text x="'+p.x+'" y="'+(p.y-8)+'" text-anchor="middle" fill="#4a5568" font-size="8" font-weight="'+(ic?'700':'400')+'">'+p.v+'</text>';return '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+r+'" fill="'+f+'"/>'+lb}).join('');
+con.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'+yh+'<path d="'+ap+'" fill="rgba(102,126,234,0.08)"/><path d="'+lp+'" fill="none" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+dots+xl+'</svg>';
+}
+
+window.openModal=function(y,m,d){
+selectedDate=formatDate(y,m,d);
+tempDrinks=records[selectedDate]?JSON.parse(JSON.stringify(records[selectedDate])):[];
+hasExistingRecord=records[selectedDate]&&records[selectedDate].length>0;
+selectedDrinkType=null;glassCount=1;selectedUnit='잔';
+var da=['일','월','화','수','목','금','토'];
+document.getElementById('modal-date').textContent=y+'년 '+(m+1)+'월 '+d+'일 ('+da[new Date(y,m,d).getDay()]+')';
+document.getElementById('glass-value').textContent='1';
+document.querySelectorAll('.drink-type-btn').forEach(function(b){b.classList.remove('selected')});
+document.querySelectorAll('.unit-btn').forEach(function(b){b.classList.remove('active')});
+document.querySelector('.unit-btn[data-unit="잔"]').classList.add('active');
+renderTempDrinks();
+document.getElementById('modal-overlay').classList.add('active');
+};
+window.closeModal=function(){document.getElementById('modal-overlay').classList.remove('active')};
+window.selectDrinkType=function(el){document.querySelectorAll('.drink-type-btn').forEach(function(b){b.classList.remove('selected')});el.classList.add('selected');selectedDrinkType=el.dataset.type};
+window.selectUnit=function(el){document.querySelectorAll('.unit-btn').forEach(function(b){b.classList.remove('active')});el.classList.add('active');selectedUnit=el.dataset.unit};
+window.changeGlass=function(delta){glassCount=Math.max(1,Math.min(99,glassCount+delta));document.getElementById('glass-value').textContent=glassCount};
+window.addDrinkToList=function(){
+if(!selectedDrinkType){showToast('주종을 선택해주세요!');return}
+var ex=null;for(var i=0;i<tempDrinks.length;i++){if(tempDrinks[i].type===selectedDrinkType&&tempDrinks[i].unit===selectedUnit){ex=tempDrinks[i];break}}
+if(ex)ex.glasses+=glassCount;else tempDrinks.push({type:selectedDrinkType,glasses:glassCount,unit:selectedUnit});
+selectedDrinkType=null;glassCount=1;selectedUnit='잔';
+document.getElementById('glass-value').textContent='1';
+document.querySelectorAll('.drink-type-btn').forEach(function(b){b.classList.remove('selected')});
+document.querySelectorAll('.unit-btn').forEach(function(b){b.classList.remove('active')});
+document.querySelector('.unit-btn[data-unit="잔"]').classList.add('active');
+renderTempDrinks();
+};
+
+function renderTempDrinks(){
+var c=document.getElementById('added-drinks'),sb=document.getElementById('save-btn'),db2=document.getElementById('delete-btn');
+if(!tempDrinks.length){c.innerHTML='';sb.disabled=true;db2.style.display=hasExistingRecord?'block':'none';return}
+sb.disabled=false;db2.style.display='none';
+c.innerHTML=tempDrinks.map(function(dr,i){var info=DRINK_INFO[dr.type]||{emoji:'🍺',name:dr.type};var u=dr.unit||'잔';return '<div class="added-drink-item"><span>'+info.emoji+' '+info.name+' '+dr.glasses+u+'</span><button onclick="removeTempDrink('+i+')">✕</button></div>'}).join('');
+}
+
+window.removeTempDrink=function(i){tempDrinks.splice(i,1);renderTempDrinks()};
+window.saveRecord=function(){if(!tempDrinks.length)return;records[selectedDate]=tempDrinks.slice();saveData().then(function(){closeModal();render();showToast('기록이 저장되었습니다! 🍺')})};
+window.deleteRecordFromModal=function(){if(!confirm('이 날의 기록을 삭제할까요?'))return;delete records[selectedDate];saveData().then(function(){closeModal();render();showToast('기록이 삭제되었습니다')})};
+
+document.getElementById('prev-month').addEventListener('click',function(){currentMonth--;if(currentMonth<0){currentMonth=11;currentYear--}selectedCalendarDate=null;render()});
+document.getElementById('next-month').addEventListener('click',function(){currentMonth++;if(currentMonth>11){currentMonth=0;currentYear++}selectedCalendarDate=null;render()});
+document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===e.currentTarget)closeModal()});
+
+window.exportData=function(){var b=new Blob([JSON.stringify(records,null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='음주기록_'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href);showToast('데이터를 내보냈습니다 📤')};
+window.importData=function(ev){var f=ev.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){try{var imp=JSON.parse(e.target.result);if(typeof imp==='object'){Object.keys(imp).forEach(function(k){records[k]=imp[k]});saveData().then(function(){render();showToast('데이터를 불러왔습니다 📥')})}}catch(err){showToast('파일을 읽을 수 없습니다')}};r.readAsText(f);ev.target.value=''};
+
+currentYear=appNow.getFullYear();currentMonth=appNow.getMonth();
+selectedCalendarDate=formatDate(currentYear,currentMonth,appNow.getDate());
+loadLocal();render();subscribeToFirestore();
+</script>
+</body>
+</html>
