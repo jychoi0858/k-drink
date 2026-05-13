@@ -9,58 +9,95 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
-            background: #1a1a2e;
-            color: #e0e0e0;
+            background: linear-gradient(180deg, #f0f4ff 0%, #faf5ff 50%, #fff5f5 100%);
+            color: #2d3748;
             min-height: 100vh;
+            transition: background 0.5s ease;
+        }
+
+        body.warning-bg {
+            background: linear-gradient(180deg, #fff0f0 0%, #ffe0e0 50%, #ffd0d0 100%);
         }
 
         .container { max-width: 480px; margin: 0 auto; padding: 16px; }
 
-        /* ── 동기화 상태 ── */
+        /* ── 동기화 ── */
         .sync-dot {
             display: inline-block; width: 6px; height: 6px; border-radius: 50%;
             margin-left: 6px; vertical-align: middle;
         }
-        .sync-dot.synced { background: #2ecc71; }
-        .sync-dot.syncing { background: #f5a623; animation: pulse 1s infinite; }
-        .sync-dot.offline { background: #e74c3c; }
+        .sync-dot.synced { background: #48bb78; }
+        .sync-dot.syncing { background: #ed8936; animation: pulse 1s infinite; }
+        .sync-dot.offline { background: #e53e3e; }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
         /* ── 헤더 ── */
         .header { text-align: center; padding: 24px 0 16px; }
-        .header h1 { font-size: 1.6em; color: #f5a623; margin-bottom: 4px; }
-        .header p { font-size: 0.85em; color: #888; }
+        .header h1 {
+            font-size: 1.6em; font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; margin-bottom: 4px;
+        }
+        .header p { font-size: 0.85em; color: #a0aec0; }
+
+        /* ── 경고 배너 ── */
+        .warning-banner {
+            display: none; background: linear-gradient(135deg, #fed7d7, #feb2b2);
+            border: 1px solid #fc8181; border-radius: 12px;
+            padding: 10px 14px; margin-bottom: 16px; text-align: center;
+            font-size: 0.8em; color: #c53030; font-weight: 600;
+            animation: warningPulse 2s ease-in-out infinite;
+        }
+        .warning-banner.active { display: block; }
+        @keyframes warningPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
 
         /* ── 통계 카드 ── */
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
 
         .stat-card {
-            background: #16213e; border-radius: 14px; padding: 14px 10px;
-            text-align: center; border: 1px solid #1a2744;
+            background: white; border-radius: 14px; padding: 14px 10px;
+            text-align: center; border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
         .stat-card .stat-icon { font-size: 1.5em; margin-bottom: 4px; }
-        .stat-card .stat-value { font-size: 1.4em; font-weight: 700; color: #f5a623; }
-        .stat-card .stat-label { font-size: 0.7em; color: #888; margin-top: 2px; }
+        .stat-card .stat-value { font-size: 1.4em; font-weight: 700; color: #667eea; }
+        .stat-card .stat-label { font-size: 0.7em; color: #a0aec0; margin-top: 2px; }
+        .stat-card.warning .stat-value { color: #e53e3e; }
+
+        /* ── 리밋 설정 ── */
+        .limit-section {
+            display: flex; align-items: center; justify-content: center;
+            gap: 8px; margin-bottom: 16px; font-size: 0.8em; color: #718096;
+        }
+        .limit-section input {
+            width: 44px; text-align: center; border: 2px solid #e2e8f0;
+            border-radius: 8px; padding: 4px; font-size: 0.9em; font-weight: 700;
+            color: #667eea; background: white; outline: none;
+        }
+        .limit-section input:focus { border-color: #667eea; }
 
         /* ── 캘린더 ── */
         .calendar-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 
         .calendar-nav button {
-            background: #16213e; border: 1px solid #1a2744; color: #e0e0e0;
-            padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: 1em; transition: background 0.2s;
+            background: white; border: 1px solid #e2e8f0; color: #4a5568;
+            padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: 1em;
+            transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-        .calendar-nav button:hover { background: #1a2744; }
-        .calendar-nav .month-title { font-size: 1.15em; font-weight: 700; color: #f5a623; }
+        .calendar-nav button:hover { border-color: #667eea; background: #f0f4ff; }
+        .calendar-nav .month-title { font-size: 1.15em; font-weight: 700; color: #2d3748; }
 
         .calendar {
-            background: #16213e; border-radius: 16px; padding: 14px;
-            margin-bottom: 20px; border: 1px solid #1a2744;
+            background: white; border-radius: 16px; padding: 14px;
+            margin-bottom: 20px; border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
 
         .calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 8px; }
-        .calendar-weekdays span { font-size: 0.75em; color: #666; padding: 4px 0; font-weight: 600; }
-        .calendar-weekdays span:first-child { color: #e74c3c; }
-        .calendar-weekdays span:last-child { color: #3498db; }
+        .calendar-weekdays span { font-size: 0.75em; color: #a0aec0; padding: 4px 0; font-weight: 600; }
+        .calendar-weekdays span:first-child { color: #e53e3e; }
+        .calendar-weekdays span:last-child { color: #3182ce; }
 
         .calendar-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 
@@ -70,155 +107,157 @@
             cursor: pointer; font-size: 0.85em; transition: all 0.2s;
             position: relative; border: 2px solid transparent;
         }
-        .calendar-day:hover { background: #1a2744; }
+        .calendar-day:hover { background: #f0f4ff; }
         .calendar-day.empty { cursor: default; }
-        .calendar-day.today { border-color: #f5a623; }
-        .calendar-day.has-record { background: rgba(245, 166, 35, 0.15); }
-        .calendar-day.has-record .day-number { color: #f5a623; font-weight: 700; }
-        .calendar-day .day-number { font-size: 0.85em; line-height: 1; }
+        .calendar-day.today { border-color: #667eea; }
+        .calendar-day.has-record { background: #f0f4ff; }
+        .calendar-day.has-record .day-number { color: #667eea; font-weight: 700; }
+        .calendar-day .day-number { font-size: 0.85em; line-height: 1; color: #4a5568; }
         .calendar-day .day-icon { font-size: 0.7em; margin-top: 1px; }
-        .calendar-day.sunday .day-number { color: #e74c3c; }
-        .calendar-day.saturday .day-number { color: #3498db; }
+        .calendar-day.sunday .day-number { color: #e53e3e; }
+        .calendar-day.saturday .day-number { color: #3182ce; }
         .calendar-day.future { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
+        .calendar-day.selected { border-color: #764ba2; background: rgba(118,75,162,0.08); }
 
-        /* ── 날짜 요약 카드 ── */
+        /* ── 날짜 요약 ── */
         .day-summary {
-            background: #16213e; border-radius: 16px; padding: 16px;
-            margin-bottom: 20px; border: 1px solid #1a2744;
+            background: white; border-radius: 16px; padding: 16px;
+            margin-bottom: 20px; border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
-        .day-summary-header {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
-        }
-        .day-summary-header h3 { font-size: 0.95em; color: #f5a623; }
+        .day-summary-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .day-summary-header h3 { font-size: 0.95em; color: #2d3748; }
         .day-summary-edit {
-            background: rgba(245,166,35,0.15); border: none; color: #f5a623;
-            padding: 5px 12px; border-radius: 8px; font-size: 0.75em; cursor: pointer; transition: all 0.2s;
+            background: linear-gradient(135deg, #667eea, #764ba2); border: none; color: white;
+            padding: 5px 14px; border-radius: 8px; font-size: 0.75em; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
         }
-        .day-summary-edit:hover { background: rgba(245,166,35,0.3); }
+        .day-summary-edit:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
         .day-summary-drinks { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 
         .drink-tag {
-            background: rgba(245, 166, 35, 0.15); color: #f5a623;
+            background: #f0f4ff; color: #667eea;
             padding: 5px 10px; border-radius: 8px; font-size: 0.8em; font-weight: 600;
+            border: 1px solid #e2e8f0;
         }
-
-        .day-summary-total {
-            font-size: 0.8em; color: #888; text-align: right;
-        }
-        .day-summary-empty {
-            text-align: center; color: #555; font-size: 0.85em; padding: 8px 0;
-        }
-        .calendar-day.selected { border-color: #3498db; background: rgba(52,152,219,0.1); }
+        .day-summary-total { font-size: 0.8em; color: #a0aec0; text-align: right; }
+        .day-summary-empty { text-align: center; color: #a0aec0; font-size: 0.85em; padding: 8px 0; }
 
         /* ── 모달 ── */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: flex-end;
+            background: rgba(0,0,0,0.35); backdrop-filter: blur(2px);
+            z-index: 100; justify-content: center; align-items: flex-end;
         }
         .modal-overlay.active { display: flex; }
 
         .modal {
-            background: #16213e; border-radius: 20px 20px 0 0;
+            background: white; border-radius: 20px 20px 0 0;
             padding: 24px 20px 32px; width: 100%; max-width: 480px;
             max-height: 85vh; overflow-y: auto; animation: slideUp 0.3s ease;
         }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .modal-header h3 { font-size: 1.1em; color: #f5a623; }
-        .modal-close { background: none; border: none; color: #888; font-size: 1.5em; cursor: pointer; padding: 4px; }
-        .modal-date { text-align: center; font-size: 0.9em; color: #aaa; margin-bottom: 16px; }
+        .modal-header h3 { font-size: 1.1em; color: #2d3748; }
+        .modal-close { background: #f7fafc; border: none; color: #718096; font-size: 1.2em; cursor: pointer; padding: 6px 10px; border-radius: 50%; }
+        .modal-close:hover { background: #edf2f7; }
+        .modal-date { text-align: center; font-size: 0.9em; color: #718096; margin-bottom: 16px; }
 
         .drink-type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
 
         .drink-type-btn {
-            background: #1a1a2e; border: 2px solid #1a2744; border-radius: 12px;
+            background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 12px;
             padding: 12px 8px; cursor: pointer; text-align: center; transition: all 0.2s;
         }
-        .drink-type-btn:hover { border-color: #f5a623; }
-        .drink-type-btn.selected { border-color: #f5a623; background: rgba(245, 166, 35, 0.1); }
+        .drink-type-btn:hover { border-color: #667eea; background: #f0f4ff; }
+        .drink-type-btn.selected { border-color: #667eea; background: #f0f4ff; }
         .drink-type-btn .drink-emoji { font-size: 1.5em; display: block; margin-bottom: 4px; }
-        .drink-type-btn .drink-name { font-size: 0.75em; color: #ccc; }
+        .drink-type-btn .drink-name { font-size: 0.75em; color: #718096; }
 
         .glass-section { margin-bottom: 20px; }
-        .glass-section label { font-size: 0.85em; color: #aaa; display: block; margin-bottom: 8px; }
+        .glass-section label { font-size: 0.85em; color: #718096; display: block; margin-bottom: 8px; }
         .glass-counter { display: flex; align-items: center; justify-content: center; gap: 20px; }
 
         .glass-counter button {
-            width: 44px; height: 44px; border-radius: 50%; border: 2px solid #f5a623;
-            background: transparent; color: #f5a623; font-size: 1.3em;
+            width: 44px; height: 44px; border-radius: 50%; border: 2px solid #667eea;
+            background: transparent; color: #667eea; font-size: 1.3em;
             cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;
         }
-        .glass-counter button:hover { background: rgba(245, 166, 35, 0.15); }
-        .glass-counter .glass-value { font-size: 2em; font-weight: 700; color: #f5a623; min-width: 60px; text-align: center; }
+        .glass-counter button:hover { background: #f0f4ff; }
+        .glass-counter .glass-value { font-size: 2em; font-weight: 700; color: #667eea; min-width: 60px; text-align: center; }
 
         .added-drinks { margin-bottom: 16px; }
         .added-drink-item {
             display: flex; justify-content: space-between; align-items: center;
-            background: #1a1a2e; padding: 10px 14px; border-radius: 10px; margin-bottom: 6px;
+            background: #f7fafc; padding: 10px 14px; border-radius: 10px; margin-bottom: 6px;
         }
-        .added-drink-item span { font-size: 0.85em; }
-        .added-drink-item button { background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 0.85em; }
+        .added-drink-item span { font-size: 0.85em; color: #2d3748; }
+        .added-drink-item button { background: none; border: none; color: #e53e3e; cursor: pointer; font-size: 0.85em; }
 
         .save-btn {
             width: 100%; padding: 14px; border: none; border-radius: 12px;
-            background: #f5a623; color: #1a1a2e; font-size: 1em; font-weight: 700;
-            cursor: pointer; transition: all 0.2s;
+            background: linear-gradient(135deg, #667eea, #764ba2); color: white;
+            font-size: 1em; font-weight: 700; cursor: pointer; transition: all 0.2s;
         }
-        .save-btn:hover { background: #e09510; }
-        .save-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+        .save-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+        .save-btn:disabled { background: #e2e8f0; color: #a0aec0; cursor: not-allowed; transform: none; box-shadow: none; }
 
         .add-drink-btn {
-            width: 100%; padding: 10px; border: 2px dashed #1a2744; border-radius: 10px;
-            background: transparent; color: #888; font-size: 0.85em;
+            width: 100%; padding: 10px; border: 2px dashed #e2e8f0; border-radius: 10px;
+            background: transparent; color: #a0aec0; font-size: 0.85em;
             cursor: pointer; margin-bottom: 16px; transition: all 0.2s;
         }
-        .add-drink-btn:hover { border-color: #f5a623; color: #f5a623; }
+        .add-drink-btn:hover { border-color: #667eea; color: #667eea; }
+
+        /* ── 연간 그래프 ── */
+        .yearly-summary {
+            background: white; border-radius: 16px; padding: 16px;
+            margin-bottom: 20px; border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .yearly-summary h3 { font-size: 0.9em; color: #2d3748; margin-bottom: 12px; text-align: center; }
+        .line-chart-container { width: 100%; overflow: hidden; }
+        .line-chart-container svg { width: 100%; height: auto; display: block; }
 
         /* ── 기타 ── */
-        .footer { text-align: center; padding: 20px 0 40px; font-size: 0.7em; color: #444; }
+        .footer { text-align: center; padding: 20px 0 40px; font-size: 0.7em; color: #a0aec0; }
 
         .data-section { margin-top: 10px; text-align: center; }
         .data-section button {
-            background: #16213e; border: 1px solid #1a2744; color: #888;
+            background: white; border: 1px solid #e2e8f0; color: #718096;
             padding: 8px 16px; border-radius: 8px; cursor: pointer;
             font-size: 0.75em; margin: 0 4px; transition: all 0.2s;
         }
-        .data-section button:hover { color: #f5a623; border-color: #f5a623; }
-
-        .yearly-summary {
-            background: #16213e; border-radius: 16px; padding: 16px;
-            margin-bottom: 20px; border: 1px solid #1a2744;
-        }
-        .yearly-summary h3 { font-size: 0.9em; color: #f5a623; margin-bottom: 12px; text-align: center; }
-
-        .line-chart-container { width: 100%; overflow: hidden; }
-        .line-chart-container svg { width: 100%; height: auto; display: block; }
+        .data-section button:hover { color: #667eea; border-color: #667eea; }
 
         .toast {
             position: fixed; bottom: 30px; left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: #f5a623; color: #1a1a2e; padding: 12px 24px;
-            border-radius: 12px; font-size: 0.85em; font-weight: 600;
+            background: linear-gradient(135deg, #667eea, #764ba2); color: white;
+            padding: 12px 24px; border-radius: 12px; font-size: 0.85em; font-weight: 600;
             z-index: 200; transition: transform 0.3s ease; white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(102,126,234,0.4);
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
 
-        .empty-state { text-align: center; padding: 30px 0; color: #555; font-size: 0.85em; }
+        .empty-state { text-align: center; padding: 30px 0; color: #a0aec0; font-size: 0.85em; }
         .empty-state .empty-icon { font-size: 2.5em; margin-bottom: 8px; opacity: 0.5; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- 헤더 -->
         <div class="header">
             <h1>🍺 나의 음주 생활기<span class="sync-dot" id="sync-dot"></span></h1>
             <p>오늘도 한 잔의 기록</p>
         </div>
 
+        <!-- 경고 배너 -->
+        <div class="warning-banner" id="warning-banner"></div>
+
         <!-- 통계 카드 -->
         <div class="stats-grid">
-            <div class="stat-card">
+            <div class="stat-card" id="stat-days-card">
                 <div class="stat-icon">📅</div>
                 <div class="stat-value" id="stat-days">0</div>
                 <div class="stat-label">이번 달 음주일</div>
@@ -233,6 +272,13 @@
                 <div class="stat-value" id="stat-streak">0</div>
                 <div class="stat-label">연속 금주일</div>
             </div>
+        </div>
+
+        <!-- 리밋 설정 -->
+        <div class="limit-section">
+            <span>이번 달 음주일 경고:</span>
+            <input type="number" id="limit-input" min="1" max="31" value="5">
+            <span>일</span>
         </div>
 
         <!-- 캘린더 -->
@@ -256,13 +302,12 @@
             </div>
         </div>
 
-        <!-- 연간 요약 (꺾은선 그래프) -->
+        <!-- 연간 요약 -->
         <div class="yearly-summary">
             <h3 id="yearly-title">2026년 월별 음주량</h3>
             <div class="line-chart-container" id="yearly-chart"></div>
         </div>
 
-        <!-- 데이터 관리 -->
         <div class="data-section">
             <button onclick="exportData()">📤 데이터 내보내기</button>
             <button onclick="document.getElementById('import-file').click()">📥 데이터 불러오기</button>
@@ -323,18 +368,16 @@
             <button class="add-drink-btn" onclick="addDrinkToList()">+ 이 주종 추가</button>
             <div class="added-drinks" id="added-drinks"></div>
             <button class="save-btn" id="save-btn" onclick="saveRecord()" disabled>기록 저장</button>
-            <button class="save-btn" id="delete-btn" onclick="deleteRecordFromModal()" style="display:none; background:#e74c3c; color:#fff; margin-top:8px;">이 날 기록 삭제</button>
+            <button class="save-btn" id="delete-btn" onclick="deleteRecordFromModal()" style="display:none; background:linear-gradient(135deg,#e53e3e,#c53030); margin-top:8px;">이 날 기록 삭제</button>
         </div>
     </div>
 
     <div class="toast" id="toast"></div>
 
-    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js';
         import { getFirestore, doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js';
 
-        // ═══ Firebase 설정 ═══
         const app = initializeApp({
             apiKey: "AIzaSyCrpRzaJvvK1Zwx3VBS1njj7aQ4qoIz3tQ",
             authDomain: "k-drink-270f3.firebaseapp.com",
@@ -344,8 +387,6 @@
             appId: "1:217678075487:web:d49ad7fd1c3b998cfaedea"
         });
         const db = getFirestore(app);
-
-        // k-bike와 동일: 인증 없이, 고정 문서 ID로 Firestore 직접 사용
         const DOC_ID = 'default_user';
 
         // ───── 상태 ─────
@@ -356,71 +397,59 @@
         let selectedDrinkType = null;
         let glassCount = 1;
         let tempDrinks = [];
+        let drinkLimit = parseInt(localStorage.getItem('drink-limit') || '5');
 
         const DRINK_INFO = {
-            soju: { emoji: '🍶', name: '소주' },
-            beer: { emoji: '🍺', name: '맥주' },
-            wine: { emoji: '🍷', name: '와인' },
-            makgeolli: { emoji: '🥛', name: '막걸리' },
-            whiskey: { emoji: '🥃', name: '위스키' },
-            cocktail: { emoji: '🍸', name: '칵테일' },
-            highball: { emoji: '🧊', name: '하이볼' },
-            sake: { emoji: '🍶', name: '사케' },
+            soju: { emoji: '🍶', name: '소주' }, beer: { emoji: '🍺', name: '맥주' },
+            wine: { emoji: '🍷', name: '와인' }, makgeolli: { emoji: '🥛', name: '막걸리' },
+            whiskey: { emoji: '🥃', name: '위스키' }, cocktail: { emoji: '🍸', name: '칵테일' },
+            highball: { emoji: '🧊', name: '하이볼' }, sake: { emoji: '🍶', name: '사케' },
             etc: { emoji: '🫗', name: '기타' }
         };
 
-        // ───── 동기화 표시 ─────
+        // ───── 리밋 설정 ─────
+        const limitInput = document.getElementById('limit-input');
+        limitInput.value = drinkLimit;
+        limitInput.addEventListener('change', () => {
+            drinkLimit = Math.max(1, Math.min(31, parseInt(limitInput.value) || 5));
+            limitInput.value = drinkLimit;
+            localStorage.setItem('drink-limit', drinkLimit);
+            renderStats();
+        });
+
+        // ───── 동기화 ─────
         function setSyncDot(state) {
             document.getElementById('sync-dot').className = 'sync-dot ' + state;
         }
 
-        // ───── Firestore 실시간 구독 (k-bike의 onSnapshot 방식) ─────
-        let unsubscribe = null;
-
         function subscribeToFirestore() {
             setSyncDot('syncing');
-            unsubscribe = onSnapshot(doc(db, 'drinks', DOC_ID),
+            onSnapshot(doc(db, 'drinks', DOC_ID),
                 (snap) => {
-                    if (snap.exists()) {
-                        records = snap.data().records || {};
-                    }
+                    if (snap.exists()) records = snap.data().records || {};
                     setSyncDot('synced');
                     render();
                 },
                 (error) => {
                     console.warn('Firestore 구독 실패:', error);
                     setSyncDot('offline');
-                    // 오프라인이면 로컬에서 로드
-                    loadLocal();
-                    render();
+                    loadLocal(); render();
                 }
             );
         }
 
-        // ───── 데이터 저장 ─────
         async function saveData() {
-            // 로컬 백업
             localStorage.setItem('drink-tracker-records', JSON.stringify(records));
-
-            // Firestore 저장
             setSyncDot('syncing');
             try {
-                await setDoc(doc(db, 'drinks', DOC_ID), {
-                    records,
-                    updatedAt: new Date().toISOString()
-                });
+                await setDoc(doc(db, 'drinks', DOC_ID), { records, updatedAt: new Date().toISOString() });
                 setSyncDot('synced');
-            } catch (e) {
-                console.warn('Firestore 저장 실패:', e);
-                setSyncDot('offline');
-            }
+            } catch (e) { console.warn('저장 실패:', e); setSyncDot('offline'); }
         }
 
         function loadLocal() {
-            try {
-                const s = localStorage.getItem('drink-tracker-records');
-                if (s) records = JSON.parse(s);
-            } catch (e) { records = {}; }
+            try { const s = localStorage.getItem('drink-tracker-records'); if (s) records = JSON.parse(s); }
+            catch (e) { records = {}; }
         }
 
         // ───── 앱 시작 ─────
@@ -428,25 +457,17 @@
         currentYear = now.getFullYear();
         currentMonth = now.getMonth();
         selectedCalendarDate = formatDate(currentYear, currentMonth, now.getDate());
-
-        // 로컬 먼저 로드 (빠른 표시) → Firestore 구독 (실시간 동기화)
-        loadLocal();
-        render();
-        subscribeToFirestore();
+        loadLocal(); render(); subscribeToFirestore();
 
         // ───── 렌더링 ─────
         function render() {
-            renderCalendar();
-            renderStats();
-            renderDaySummary();
-            renderYearlyChart();
+            renderCalendar(); renderStats(); renderDaySummary(); renderYearlyChart();
         }
 
         function renderCalendar() {
             document.getElementById('month-title').textContent = `${currentYear}년 ${currentMonth + 1}월`;
             const container = document.getElementById('calendar-days');
             container.innerHTML = '';
-
             const firstDay = new Date(currentYear, currentMonth, 1).getDay();
             const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
             const today = new Date();
@@ -473,6 +494,7 @@
                 if (dow === 0) cls += ' sunday';
                 if (dow === 6) cls += ' saturday';
                 if (isFuture) cls += ' future';
+                if (selectedCalendarDate === dateKey) cls += ' selected';
 
                 let inner = `<span class="day-number">${d}</span>`;
                 if (hasRecord) {
@@ -480,15 +502,12 @@
                     const main = records[dateKey][0];
                     inner += `<span class="day-icon">${DRINK_INFO[main.type]?.emoji || '🍺'}${total > 1 ? total : ''}</span>`;
                 }
-                // 선택된 날짜 표시
-                if (selectedCalendarDate === dateKey) cls += ' selected';
                 el.className = cls;
                 el.innerHTML = inner;
                 if (!isFuture) {
                     el.addEventListener('click', () => {
                         selectedCalendarDate = dateKey;
-                        renderCalendar();
-                        renderDaySummary();
+                        renderCalendar(); renderDaySummary();
                     });
                     el.addEventListener('dblclick', () => openModal(currentYear, currentMonth, d));
                 }
@@ -512,18 +531,32 @@
             while (streak <= 365) {
                 const key = formatDate(check.getFullYear(), check.getMonth(), check.getDate());
                 if (records[key] && records[key].length > 0) break;
-                streak++;
-                check.setDate(check.getDate() - 1);
+                streak++; check.setDate(check.getDate() - 1);
             }
 
             document.getElementById('stat-days').textContent = drinkDays;
             document.getElementById('stat-glasses').textContent = totalGlasses;
             document.getElementById('stat-streak').textContent = streak;
+
+            // 경고 리밋 체크
+            const card = document.getElementById('stat-days-card');
+            const banner = document.getElementById('warning-banner');
+            const isCurrentMonth = currentYear === now.getFullYear() && currentMonth === now.getMonth();
+
+            if (isCurrentMonth && drinkDays > drinkLimit) {
+                card.classList.add('warning');
+                banner.textContent = `⚠️ 이번 달 음주일(${drinkDays}일)이 목표(${drinkLimit}일)를 초과했습니다!`;
+                banner.classList.add('active');
+                document.body.classList.add('warning-bg');
+            } else {
+                card.classList.remove('warning');
+                banner.classList.remove('active');
+                document.body.classList.remove('warning-bg');
+            }
         }
 
         function renderDaySummary() {
             const container = document.getElementById('day-summary-content');
-
             if (!selectedCalendarDate) {
                 container.innerHTML = `<div class="day-summary-empty">날짜를 선택하면 해당 날의 기록을 볼 수 있습니다</div>`;
                 return;
@@ -537,10 +570,8 @@
 
             if (!dayRecords || !dayRecords.length) {
                 container.innerHTML = `
-                    <div class="day-summary-header">
-                        <h3>📋 ${dateLabel}</h3>
-                        <button class="day-summary-edit" onclick="openModal(${y},${m},${d})">+ 기록하기</button>
-                    </div>
+                    <div class="day-summary-header"><h3>📋 ${dateLabel}</h3>
+                    <button class="day-summary-edit" onclick="openModal(${y},${m},${d})">+ 기록하기</button></div>
                     <div class="day-summary-empty">이 날은 음주 기록이 없습니다</div>`;
                 return;
             }
@@ -552,10 +583,8 @@
             }).join('');
 
             container.innerHTML = `
-                <div class="day-summary-header">
-                    <h3>📋 ${dateLabel}</h3>
-                    <button class="day-summary-edit" onclick="openModal(${y},${m},${d})">수정</button>
-                </div>
+                <div class="day-summary-header"><h3>📋 ${dateLabel}</h3>
+                <button class="day-summary-edit" onclick="openModal(${y},${m},${d})">수정</button></div>
                 <div class="day-summary-drinks">${tags}</div>
                 <div class="day-summary-total">총 ${totalGlasses}잔</div>`;
         }
@@ -576,52 +605,44 @@
                 if (total > max) max = total;
             }
 
-            // SVG 꺾은선 그래프
             const W = 420, H = 130, PX = 30, PY = 15, PB = 20;
             const chartW = W - PX * 2, chartH = H - PY - PB;
             const maxVal = max || 1;
 
-            const points = data.map((v, i) => {
-                const x = PX + (i / 11) * chartW;
-                const y = PY + chartH - (v / maxVal) * chartH;
-                return { x, y, v, i };
-            });
+            const points = data.map((v, i) => ({
+                x: PX + (i / 11) * chartW,
+                y: PY + chartH - (v / maxVal) * chartH, v, i
+            }));
 
             const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
             const areaPath = linePath + ` L${points[11].x.toFixed(1)},${PY + chartH} L${points[0].x.toFixed(1)},${PY + chartH} Z`;
 
-            // Y축 눈금
             const yTicks = max > 0 ? [0, Math.round(maxVal / 2), maxVal] : [0];
             const yTicksHtml = yTicks.map(v => {
                 const y = PY + chartH - (v / maxVal) * chartH;
-                return `<line x1="${PX}" y1="${y}" x2="${PX + chartW}" y2="${y}" stroke="#1a2744" stroke-width="1"/>
-                        <text x="${PX - 4}" y="${y + 3}" text-anchor="end" fill="#555" font-size="8">${v}</text>`;
+                return `<line x1="${PX}" y1="${y}" x2="${PX + chartW}" y2="${y}" stroke="#e2e8f0" stroke-width="1"/>
+                        <text x="${PX - 4}" y="${y + 3}" text-anchor="end" fill="#a0aec0" font-size="8">${v}</text>`;
             }).join('');
 
-            // X축 라벨
             const xLabels = points.map(p =>
-                `<text x="${p.x}" y="${H - 4}" text-anchor="middle" fill="#666" font-size="8">${p.i + 1}월</text>`
+                `<text x="${p.x}" y="${H - 4}" text-anchor="middle" fill="#a0aec0" font-size="8">${p.i + 1}월</text>`
             ).join('');
 
-            // 데이터 포인트 + 값 표시
             const dots = points.map(p => {
                 const isCurrent = p.i === currentMonth;
                 const r = isCurrent ? 4 : 3;
-                const fill = isCurrent ? '#f5a623' : '#f5a62388';
+                const fill = isCurrent ? '#667eea' : '#667eea66';
                 let label = '';
-                if (p.v > 0) {
-                    label = `<text x="${p.x}" y="${p.y - 8}" text-anchor="middle" fill="#aaa" font-size="8" font-weight="${isCurrent ? '700' : '400'}">${p.v}</text>`;
-                }
+                if (p.v > 0) label = `<text x="${p.x}" y="${p.y - 8}" text-anchor="middle" fill="#4a5568" font-size="8" font-weight="${isCurrent ? '700' : '400'}">${p.v}</text>`;
                 return `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${fill}"/>${label}`;
             }).join('');
 
             container.innerHTML = `
                 <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
                     ${yTicksHtml}
-                    <path d="${areaPath}" fill="rgba(245,166,35,0.08)"/>
-                    <path d="${linePath}" fill="none" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    ${dots}
-                    ${xLabels}
+                    <path d="${areaPath}" fill="rgba(102,126,234,0.08)"/>
+                    <path d="${linePath}" fill="none" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    ${dots}${xLabels}
                 </svg>`;
         }
 
@@ -632,8 +653,7 @@
             selectedDate = formatDate(y, m, d);
             tempDrinks = records[selectedDate] ? JSON.parse(JSON.stringify(records[selectedDate])) : [];
             hasExistingRecord = records[selectedDate] && records[selectedDate].length > 0;
-            selectedDrinkType = null;
-            glassCount = 1;
+            selectedDrinkType = null; glassCount = 1;
 
             const dow = ['일','월','화','수','목','금','토'][new Date(y, m, d).getDay()];
             document.getElementById('modal-date').textContent = `${y}년 ${m+1}월 ${d}일 (${dow})`;
@@ -661,7 +681,6 @@
             const ex = tempDrinks.find(d => d.type === selectedDrinkType);
             if (ex) ex.glasses += glassCount;
             else tempDrinks.push({ type: selectedDrinkType, glasses: glassCount });
-
             selectedDrinkType = null; glassCount = 1;
             document.getElementById('glass-value').textContent = '1';
             document.querySelectorAll('.drink-type-btn').forEach(b => b.classList.remove('selected'));
@@ -672,17 +691,12 @@
             const c = document.getElementById('added-drinks');
             const saveBtn = document.getElementById('save-btn');
             const delBtn = document.getElementById('delete-btn');
-
             if (!tempDrinks.length) {
-                c.innerHTML = '';
-                saveBtn.disabled = true;
-                // 기존 기록이 있었는데 다 지운 상태 → 삭제 버튼 표시
+                c.innerHTML = ''; saveBtn.disabled = true;
                 delBtn.style.display = hasExistingRecord ? 'block' : 'none';
                 return;
             }
-
-            saveBtn.disabled = false;
-            delBtn.style.display = 'none';
+            saveBtn.disabled = false; delBtn.style.display = 'none';
             c.innerHTML = tempDrinks.map((dr, i) => {
                 const info = DRINK_INFO[dr.type] || { emoji: '🍺', name: dr.type };
                 return `<div class="added-drink-item"><span>${info.emoji} ${info.name} ${dr.glasses}잔</span><button onclick="removeTempDrink(${i})">✕</button></div>`;
@@ -694,26 +708,19 @@
         window.saveRecord = async function() {
             if (!tempDrinks.length) return;
             records[selectedDate] = [...tempDrinks];
-            await saveData();
-            closeModal();
-            render();
+            await saveData(); closeModal(); render();
             showToast('기록이 저장되었습니다! 🍺');
         };
 
         window.deleteRecord = async function(key) {
             if (!confirm('이 날의 기록을 삭제할까요?')) return;
-            delete records[key];
-            await saveData();
-            render();
+            delete records[key]; await saveData(); render();
             showToast('기록이 삭제되었습니다');
         };
 
         window.deleteRecordFromModal = async function() {
             if (!confirm('이 날의 기록을 삭제할까요?')) return;
-            delete records[selectedDate];
-            await saveData();
-            closeModal();
-            render();
+            delete records[selectedDate]; await saveData(); closeModal(); render();
             showToast('기록이 삭제되었습니다');
         };
 
@@ -732,12 +739,12 @@
         document.getElementById('prev-month').addEventListener('click', () => {
             currentMonth--;
             if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-            render();
+            selectedCalendarDate = null; render();
         });
         document.getElementById('next-month').addEventListener('click', () => {
             currentMonth++;
             if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-            render();
+            selectedCalendarDate = null; render();
         });
         document.getElementById('modal-overlay').addEventListener('click', e => {
             if (e.target === e.currentTarget) closeModal();
@@ -746,16 +753,14 @@
         // ───── 데이터 관리 ─────
         window.exportData = function() {
             const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
             a.download = `음주기록_${new Date().toISOString().slice(0,10)}.json`;
             a.click(); URL.revokeObjectURL(a.href);
             showToast('데이터를 내보냈습니다 📤');
         };
 
         window.importData = async function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+            const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = async function(e) {
                 try {
@@ -767,8 +772,7 @@
                     }
                 } catch (err) { showToast('파일을 읽을 수 없습니다'); }
             };
-            reader.readAsText(file);
-            event.target.value = '';
+            reader.readAsText(file); event.target.value = '';
         };
     </script>
 </body>
