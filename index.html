@@ -16,11 +16,6 @@
 
         .container { max-width: 480px; margin: 0 auto; padding: 16px; }
 
-        /* ── 헤더 ── */
-        .header { text-align: center; padding: 24px 0 16px; }
-        .header h1 { font-size: 1.6em; color: #f5a623; margin-bottom: 4px; }
-        .header p { font-size: 0.85em; color: #888; }
-
         /* ── 동기화 상태 ── */
         .sync-dot {
             display: inline-block; width: 6px; height: 6px; border-radius: 50%;
@@ -31,6 +26,11 @@
         .sync-dot.offline { background: #e74c3c; }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
+        /* ── 헤더 ── */
+        .header { text-align: center; padding: 24px 0 16px; }
+        .header h1 { font-size: 1.6em; color: #f5a623; margin-bottom: 4px; }
+        .header p { font-size: 0.85em; color: #888; }
+
         /* ── 통계 카드 ── */
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
 
@@ -38,7 +38,6 @@
             background: #16213e; border-radius: 14px; padding: 14px 10px;
             text-align: center; border: 1px solid #1a2744;
         }
-
         .stat-card .stat-icon { font-size: 1.5em; margin-bottom: 4px; }
         .stat-card .stat-value { font-size: 1.4em; font-weight: 700; color: #f5a623; }
         .stat-card .stat-label { font-size: 0.7em; color: #888; margin-top: 2px; }
@@ -328,22 +327,21 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js';
-        import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js';
-        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-auth.js';
+        import { getFirestore, doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js';
 
         // ═══ Firebase 설정 ═══
-        const firebaseConfig = {
+        const app = initializeApp({
             apiKey: "AIzaSyCrpRzaJvvK1Zwx3VBS1njj7aQ4qoIz3tQ",
             authDomain: "k-drink-270f3.firebaseapp.com",
             projectId: "k-drink-270f3",
             storageBucket: "k-drink-270f3.firebasestorage.app",
             messagingSenderId: "217678075487",
             appId: "1:217678075487:web:d49ad7fd1c3b998cfaedea"
-        };
-
-        const app = initializeApp(firebaseConfig);
+        });
         const db = getFirestore(app);
-        const auth = getAuth(app);
+
+        // k-bike와 동일: 인증 없이, 고정 문서 ID로 Firestore 직접 사용
+        const DOC_ID = 'default_user';
 
         // ───── 상태 ─────
         let currentYear, currentMonth;
@@ -352,7 +350,6 @@
         let selectedDrinkType = null;
         let glassCount = 1;
         let tempDrinks = [];
-        let uid = null;
 
         const DRINK_INFO = {
             soju: { emoji: '🍶', name: '소주' },
@@ -368,11 +365,51 @@
 
         // ───── 동기화 표시 ─────
         function setSyncDot(state) {
-            const dot = document.getElementById('sync-dot');
-            dot.className = 'sync-dot ' + state;
+            document.getElementById('sync-dot').className = 'sync-dot ' + state;
         }
 
-        // ───── 데이터 로드/저장 ─────
+        // ───── Firestore 실시간 구독 (k-bike의 onSnapshot 방식) ─────
+        let unsubscribe = null;
+
+        function subscribeToFirestore() {
+            setSyncDot('syncing');
+            unsubscribe = onSnapshot(doc(db, 'drinks', DOC_ID),
+                (snap) => {
+                    if (snap.exists()) {
+                        records = snap.data().records || {};
+                    }
+                    setSyncDot('synced');
+                    render();
+                },
+                (error) => {
+                    console.warn('Firestore 구독 실패:', error);
+                    setSyncDot('offline');
+                    // 오프라인이면 로컬에서 로드
+                    loadLocal();
+                    render();
+                }
+            );
+        }
+
+        // ───── 데이터 저장 ─────
+        async function saveData() {
+            // 로컬 백업
+            localStorage.setItem('drink-tracker-records', JSON.stringify(records));
+
+            // Firestore 저장
+            setSyncDot('syncing');
+            try {
+                await setDoc(doc(db, 'drinks', DOC_ID), {
+                    records,
+                    updatedAt: new Date().toISOString()
+                });
+                setSyncDot('synced');
+            } catch (e) {
+                console.warn('Firestore 저장 실패:', e);
+                setSyncDot('offline');
+            }
+        }
+
         function loadLocal() {
             try {
                 const s = localStorage.getItem('drink-tracker-records');
@@ -380,70 +417,15 @@
             } catch (e) { records = {}; }
         }
 
-        function saveLocal() {
-            localStorage.setItem('drink-tracker-records', JSON.stringify(records));
-        }
+        // ───── 앱 시작 ─────
+        const now = new Date();
+        currentYear = now.getFullYear();
+        currentMonth = now.getMonth();
 
-        async function loadCloud() {
-            if (!uid) return;
-            setSyncDot('syncing');
-            try {
-                const snap = await getDoc(doc(db, 'drinks', uid));
-                if (snap.exists()) {
-                    const cloud = snap.data().records || {};
-                    records = { ...records, ...cloud };
-                    saveLocal();
-                }
-                setSyncDot('synced');
-            } catch (e) {
-                console.warn('클라우드 로드 실패:', e);
-                setSyncDot('offline');
-            }
-        }
-
-        async function saveCloud() {
-            if (!uid) return;
-            setSyncDot('syncing');
-            try {
-                await setDoc(doc(db, 'drinks', uid), {
-                    records,
-                    updatedAt: new Date().toISOString()
-                });
-                setSyncDot('synced');
-            } catch (e) {
-                console.warn('클라우드 저장 실패:', e);
-                setSyncDot('offline');
-            }
-        }
-
-        async function saveData() {
-            saveLocal();
-            await saveCloud();
-        }
-
-        // ───── 익명 인증 + 앱 시작 ─────
+        // 로컬 먼저 로드 (빠른 표시) → Firestore 구독 (실시간 동기화)
         loadLocal();
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                uid = user.uid;
-                await loadCloud();
-                startApp();
-            }
-        });
-
-        // 익명 로그인 (자동)
-        signInAnonymously(auth).catch(e => {
-            console.warn('익명 인증 실패, 로컬 모드:', e);
-            startApp();
-        });
-
-        function startApp() {
-            const now = new Date();
-            currentYear = now.getFullYear();
-            currentMonth = now.getMonth();
-            render();
-        }
+        render();
+        subscribeToFirestore();
 
         // ───── 렌더링 ─────
         function render() {
@@ -623,7 +605,8 @@
             if (!tempDrinks.length) return;
             records[selectedDate] = [...tempDrinks];
             await saveData();
-            closeModal(); render();
+            closeModal();
+            render();
             showToast('기록이 저장되었습니다! 🍺');
         };
 
