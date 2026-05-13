@@ -175,6 +175,17 @@
         .drink-type-btn .drink-emoji { font-size: 1.5em; display: block; margin-bottom: 4px; }
         .drink-type-btn .drink-name { font-size: 0.75em; color: #718096; }
 
+        .unit-section { margin-bottom: 12px; }
+        .unit-section label { font-size: 0.85em; color: #718096; display: block; margin-bottom: 8px; }
+        .unit-toggle { display: flex; gap: 8px; justify-content: center; }
+        .unit-btn {
+            padding: 6px 20px; border: 2px solid #e2e8f0; border-radius: 10px;
+            background: white; font-size: 0.85em; font-weight: 600; color: #718096;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .unit-btn:hover { border-color: #667eea; color: #667eea; }
+        .unit-btn.active { border-color: #667eea; background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+
         .glass-section { margin-bottom: 20px; }
         .glass-section label { font-size: 0.85em; color: #718096; display: block; margin-bottom: 8px; }
         .glass-counter { display: flex; align-items: center; justify-content: center; gap: 20px; }
@@ -314,7 +325,7 @@
             <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
         </div>
 
-        <div class="footer">나의 음주 생활기 v2.0 · 건강한 음주 습관을 위해 🍺</div>
+        <div class="footer">나의 음주 생활기 v2.0 · 2025.05.13 릴리즈 · 건강한 음주 습관을 위해 🍺</div>
     </div>
 
     <!-- 기록 모달 -->
@@ -356,8 +367,16 @@
                 </button>
             </div>
 
+            <div class="unit-section">
+                <label>단위</label>
+                <div class="unit-toggle">
+                    <button class="unit-btn active" data-unit="잔" onclick="selectUnit(this)">🥃 잔</button>
+                    <button class="unit-btn" data-unit="병" onclick="selectUnit(this)">🍾 병</button>
+                </div>
+            </div>
+
             <div class="glass-section">
-                <label>잔 수</label>
+                <label>수량</label>
                 <div class="glass-counter">
                     <button onclick="changeGlass(-1)">−</button>
                     <div class="glass-value" id="glass-value">1</div>
@@ -396,6 +415,7 @@
         let selectedCalendarDate = null;
         let selectedDrinkType = null;
         let glassCount = 1;
+        let selectedUnit = '잔';
         let tempDrinks = [];
         let drinkLimit = parseInt(localStorage.getItem('drink-limit') || '5');
 
@@ -410,11 +430,15 @@
         // ───── 리밋 설정 ─────
         const limitInput = document.getElementById('limit-input');
         limitInput.value = drinkLimit;
-        limitInput.addEventListener('change', () => {
-            drinkLimit = Math.max(1, Math.min(31, parseInt(limitInput.value) || 5));
-            limitInput.value = drinkLimit;
+        limitInput.addEventListener('input', () => {
+            const val = parseInt(limitInput.value);
+            if (!val || val < 1) return;
+            drinkLimit = Math.min(31, val);
             localStorage.setItem('drink-limit', drinkLimit);
             renderStats();
+        });
+        limitInput.addEventListener('blur', () => {
+            limitInput.value = drinkLimit;
         });
 
         // ───── 동기화 ─────
@@ -579,7 +603,8 @@
             const totalGlasses = dayRecords.reduce((s, dr) => s + dr.glasses, 0);
             const tags = dayRecords.map(dr => {
                 const info = DRINK_INFO[dr.type] || { emoji: '🍺', name: dr.type };
-                return `<span class="drink-tag">${info.emoji} ${info.name} ${dr.glasses}잔</span>`;
+                const unit = dr.unit || '잔';
+                return `<span class="drink-tag">${info.emoji} ${info.name} ${dr.glasses}${unit}</span>`;
             }).join('');
 
             container.innerHTML = `
@@ -653,12 +678,14 @@
             selectedDate = formatDate(y, m, d);
             tempDrinks = records[selectedDate] ? JSON.parse(JSON.stringify(records[selectedDate])) : [];
             hasExistingRecord = records[selectedDate] && records[selectedDate].length > 0;
-            selectedDrinkType = null; glassCount = 1;
+            selectedDrinkType = null; glassCount = 1; selectedUnit = '잔';
 
             const dow = ['일','월','화','수','목','금','토'][new Date(y, m, d).getDay()];
             document.getElementById('modal-date').textContent = `${y}년 ${m+1}월 ${d}일 (${dow})`;
             document.getElementById('glass-value').textContent = '1';
             document.querySelectorAll('.drink-type-btn').forEach(b => b.classList.remove('selected'));
+            document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.unit-btn[data-unit="잔"]').classList.add('active');
             renderTempDrinks();
             document.getElementById('modal-overlay').classList.add('active');
         };
@@ -671,6 +698,12 @@
             selectedDrinkType = el.dataset.type;
         };
 
+        window.selectUnit = function(el) {
+            document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            selectedUnit = el.dataset.unit;
+        };
+
         window.changeGlass = function(delta) {
             glassCount = Math.max(1, Math.min(99, glassCount + delta));
             document.getElementById('glass-value').textContent = glassCount;
@@ -678,12 +711,14 @@
 
         window.addDrinkToList = function() {
             if (!selectedDrinkType) { showToast('주종을 선택해주세요!'); return; }
-            const ex = tempDrinks.find(d => d.type === selectedDrinkType);
+            const ex = tempDrinks.find(d => d.type === selectedDrinkType && d.unit === selectedUnit);
             if (ex) ex.glasses += glassCount;
-            else tempDrinks.push({ type: selectedDrinkType, glasses: glassCount });
-            selectedDrinkType = null; glassCount = 1;
+            else tempDrinks.push({ type: selectedDrinkType, glasses: glassCount, unit: selectedUnit });
+            selectedDrinkType = null; glassCount = 1; selectedUnit = '잔';
             document.getElementById('glass-value').textContent = '1';
             document.querySelectorAll('.drink-type-btn').forEach(b => b.classList.remove('selected'));
+            document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.unit-btn[data-unit="잔"]').classList.add('active');
             renderTempDrinks();
         };
 
@@ -699,7 +734,8 @@
             saveBtn.disabled = false; delBtn.style.display = 'none';
             c.innerHTML = tempDrinks.map((dr, i) => {
                 const info = DRINK_INFO[dr.type] || { emoji: '🍺', name: dr.type };
-                return `<div class="added-drink-item"><span>${info.emoji} ${info.name} ${dr.glasses}잔</span><button onclick="removeTempDrink(${i})">✕</button></div>`;
+                const unit = dr.unit || '잔';
+                return `<div class="added-drink-item"><span>${info.emoji} ${info.name} ${dr.glasses}${unit}</span><button onclick="removeTempDrink(${i})">✕</button></div>`;
             }).join('');
         }
 
@@ -732,48 +768,4 @@
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.textContent = msg; t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 2000);
-        }
-
-        // ───── 내비게이션 ─────
-        document.getElementById('prev-month').addEventListener('click', () => {
-            currentMonth--;
-            if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-            selectedCalendarDate = null; render();
-        });
-        document.getElementById('next-month').addEventListener('click', () => {
-            currentMonth++;
-            if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-            selectedCalendarDate = null; render();
-        });
-        document.getElementById('modal-overlay').addEventListener('click', e => {
-            if (e.target === e.currentTarget) closeModal();
-        });
-
-        // ───── 데이터 관리 ─────
-        window.exportData = function() {
-            const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-            a.download = `음주기록_${new Date().toISOString().slice(0,10)}.json`;
-            a.click(); URL.revokeObjectURL(a.href);
-            showToast('데이터를 내보냈습니다 📤');
-        };
-
-        window.importData = async function(event) {
-            const file = event.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    if (typeof imported === 'object') {
-                        records = { ...records, ...imported };
-                        await saveData(); render();
-                        showToast('데이터를 불러왔습니다 📥');
-                    }
-                } catch (err) { showToast('파일을 읽을 수 없습니다'); }
-            };
-            reader.readAsText(file); event.target.value = '';
-        };
-    </script>
-</body>
-</html>
+            setTimeout(() => t.class
