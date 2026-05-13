@@ -81,28 +81,34 @@
         .calendar-day.saturday .day-number { color: #3498db; }
         .calendar-day.future { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
 
-        /* ── 기록 목록 ── */
-        .records-section { margin-bottom: 20px; }
-        .records-section h3 { font-size: 0.95em; color: #f5a623; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-
-        .record-item {
-            background: #16213e; border-radius: 12px; padding: 12px 14px;
-            margin-bottom: 8px; display: flex; justify-content: space-between;
-            align-items: center; border: 1px solid #1a2744;
+        /* ── 날짜 요약 카드 ── */
+        .day-summary {
+            background: #16213e; border-radius: 16px; padding: 16px;
+            margin-bottom: 20px; border: 1px solid #1a2744;
         }
-        .record-item .record-date { font-size: 0.85em; color: #aaa; margin-bottom: 4px; }
-        .record-item .record-drinks { display: flex; flex-wrap: wrap; gap: 6px; }
+        .day-summary-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+        }
+        .day-summary-header h3 { font-size: 0.95em; color: #f5a623; }
+        .day-summary-edit {
+            background: rgba(245,166,35,0.15); border: none; color: #f5a623;
+            padding: 5px 12px; border-radius: 8px; font-size: 0.75em; cursor: pointer; transition: all 0.2s;
+        }
+        .day-summary-edit:hover { background: rgba(245,166,35,0.3); }
+        .day-summary-drinks { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 
         .drink-tag {
             background: rgba(245, 166, 35, 0.15); color: #f5a623;
-            padding: 3px 8px; border-radius: 6px; font-size: 0.75em; font-weight: 600;
+            padding: 5px 10px; border-radius: 8px; font-size: 0.8em; font-weight: 600;
         }
 
-        .record-item .record-delete {
-            background: none; border: none; color: #666; cursor: pointer;
-            font-size: 1.1em; padding: 4px 8px; border-radius: 6px; transition: all 0.2s;
+        .day-summary-total {
+            font-size: 0.8em; color: #888; text-align: right;
         }
-        .record-item .record-delete:hover { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
+        .day-summary-empty {
+            text-align: center; color: #555; font-size: 0.85em; padding: 8px 0;
+        }
+        .calendar-day.selected { border-color: #3498db; background: rgba(52,152,219,0.1); }
 
         /* ── 모달 ── */
         .modal-overlay {
@@ -186,12 +192,8 @@
         }
         .yearly-summary h3 { font-size: 0.9em; color: #f5a623; margin-bottom: 12px; text-align: center; }
 
-        .yearly-bar-chart { display: flex; align-items: flex-end; justify-content: space-between; height: 100px; gap: 4px; padding: 0 4px; }
-        .bar-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .bar { width: 100%; min-height: 2px; background: #f5a623; border-radius: 4px 4px 0 0; transition: height 0.5s ease; opacity: 0.7; }
-        .bar.current { opacity: 1; }
-        .bar-label { font-size: 0.55em; color: #666; }
-        .bar-value { font-size: 0.55em; color: #aaa; }
+        .line-chart-container { width: 100%; overflow: hidden; }
+        .line-chart-container svg { width: 100%; height: auto; display: block; }
 
         .toast {
             position: fixed; bottom: 30px; left: 50%;
@@ -247,16 +249,17 @@
             <div class="calendar-days" id="calendar-days"></div>
         </div>
 
-        <!-- 연간 요약 -->
-        <div class="yearly-summary">
-            <h3 id="yearly-title">2026년 월별 음주량</h3>
-            <div class="yearly-bar-chart" id="yearly-chart"></div>
+        <!-- 선택한 날짜 요약 -->
+        <div class="day-summary" id="day-summary">
+            <div id="day-summary-content">
+                <div class="day-summary-empty">날짜를 선택하면 해당 날의 기록을 볼 수 있습니다</div>
+            </div>
         </div>
 
-        <!-- 이번 달 기록 -->
-        <div class="records-section">
-            <h3>📋 이번 달 기록</h3>
-            <div id="records-list"></div>
+        <!-- 연간 요약 (꺾은선 그래프) -->
+        <div class="yearly-summary">
+            <h3 id="yearly-title">2026년 월별 음주량</h3>
+            <div class="line-chart-container" id="yearly-chart"></div>
         </div>
 
         <!-- 데이터 관리 -->
@@ -349,6 +352,7 @@
         let currentYear, currentMonth;
         let records = {};
         let selectedDate = null;
+        let selectedCalendarDate = null;
         let selectedDrinkType = null;
         let glassCount = 1;
         let tempDrinks = [];
@@ -423,6 +427,7 @@
         const now = new Date();
         currentYear = now.getFullYear();
         currentMonth = now.getMonth();
+        selectedCalendarDate = formatDate(currentYear, currentMonth, now.getDate());
 
         // 로컬 먼저 로드 (빠른 표시) → Firestore 구독 (실시간 동기화)
         loadLocal();
@@ -433,7 +438,7 @@
         function render() {
             renderCalendar();
             renderStats();
-            renderRecordsList();
+            renderDaySummary();
             renderYearlyChart();
         }
 
@@ -468,7 +473,6 @@
                 if (dow === 0) cls += ' sunday';
                 if (dow === 6) cls += ' saturday';
                 if (isFuture) cls += ' future';
-                el.className = cls;
 
                 let inner = `<span class="day-number">${d}</span>`;
                 if (hasRecord) {
@@ -476,9 +480,17 @@
                     const main = records[dateKey][0];
                     inner += `<span class="day-icon">${DRINK_INFO[main.type]?.emoji || '🍺'}${total > 1 ? total : ''}</span>`;
                 }
+                // 선택된 날짜 표시
+                if (selectedCalendarDate === dateKey) cls += ' selected';
+                el.className = cls;
                 el.innerHTML = inner;
                 if (!isFuture) {
-                    el.addEventListener('click', () => openModal(currentYear, currentMonth, d));
+                    el.addEventListener('click', () => {
+                        selectedCalendarDate = dateKey;
+                        renderCalendar();
+                        renderDaySummary();
+                    });
+                    el.addEventListener('dblclick', () => openModal(currentYear, currentMonth, d));
                 }
                 container.appendChild(el);
             }
@@ -509,29 +521,43 @@
             document.getElementById('stat-streak').textContent = streak;
         }
 
-        function renderRecordsList() {
-            const container = document.getElementById('records-list');
-            const entries = [];
-            const dim = new Date(currentYear, currentMonth + 1, 0).getDate();
-            for (let d = dim; d >= 1; d--) {
-                const key = formatDate(currentYear, currentMonth, d);
-                if (records[key] && records[key].length > 0)
-                    entries.push({ date: key, day: d, drinks: records[key] });
-            }
+        function renderDaySummary() {
+            const container = document.getElementById('day-summary-content');
 
-            if (!entries.length) {
-                container.innerHTML = `<div class="empty-state"><div class="empty-icon">🌙</div><div>이번 달 음주 기록이 없습니다<br>날짜를 눌러 기록해보세요!</div></div>`;
+            if (!selectedCalendarDate) {
+                container.innerHTML = `<div class="day-summary-empty">날짜를 선택하면 해당 날의 기록을 볼 수 있습니다</div>`;
                 return;
             }
 
-            container.innerHTML = entries.map(e => {
-                const dow = ['일','월','화','수','목','금','토'][new Date(currentYear, currentMonth, e.day).getDay()];
-                const tags = e.drinks.map(dr => {
-                    const info = DRINK_INFO[dr.type] || { emoji: '🍺', name: dr.type };
-                    return `<span class="drink-tag">${info.emoji} ${info.name} ${dr.glasses}잔</span>`;
-                }).join('');
-                return `<div class="record-item"><div><div class="record-date">${currentMonth+1}/${e.day} (${dow})</div><div class="record-drinks">${tags}</div></div><button class="record-delete" onclick="deleteRecord('${e.date}')">🗑</button></div>`;
+            const parts = selectedCalendarDate.split('-');
+            const y = parseInt(parts[0]), m = parseInt(parts[1]) - 1, d = parseInt(parts[2]);
+            const dow = ['일','월','화','수','목','금','토'][new Date(y, m, d).getDay()];
+            const dateLabel = `${m+1}월 ${d}일 (${dow})`;
+            const dayRecords = records[selectedCalendarDate];
+
+            if (!dayRecords || !dayRecords.length) {
+                container.innerHTML = `
+                    <div class="day-summary-header">
+                        <h3>📋 ${dateLabel}</h3>
+                        <button class="day-summary-edit" onclick="openModal(${y},${m},${d})">+ 기록하기</button>
+                    </div>
+                    <div class="day-summary-empty">이 날은 음주 기록이 없습니다</div>`;
+                return;
+            }
+
+            const totalGlasses = dayRecords.reduce((s, dr) => s + dr.glasses, 0);
+            const tags = dayRecords.map(dr => {
+                const info = DRINK_INFO[dr.type] || { emoji: '🍺', name: dr.type };
+                return `<span class="drink-tag">${info.emoji} ${info.name} ${dr.glasses}잔</span>`;
             }).join('');
+
+            container.innerHTML = `
+                <div class="day-summary-header">
+                    <h3>📋 ${dateLabel}</h3>
+                    <button class="day-summary-edit" onclick="openModal(${y},${m},${d})">수정</button>
+                </div>
+                <div class="day-summary-drinks">${tags}</div>
+                <div class="day-summary-total">총 ${totalGlasses}잔</div>`;
         }
 
         function renderYearlyChart() {
@@ -550,10 +576,53 @@
                 if (total > max) max = total;
             }
 
-            container.innerHTML = data.map((t, i) => {
-                const h = max > 0 ? Math.max(2, (t / max) * 80) : 2;
-                return `<div class="bar-item"><div class="bar-value">${t > 0 ? t : ''}</div><div class="bar ${i === currentMonth ? 'current' : ''}" style="height:${h}px"></div><div class="bar-label">${i+1}월</div></div>`;
+            // SVG 꺾은선 그래프
+            const W = 420, H = 130, PX = 30, PY = 15, PB = 20;
+            const chartW = W - PX * 2, chartH = H - PY - PB;
+            const maxVal = max || 1;
+
+            const points = data.map((v, i) => {
+                const x = PX + (i / 11) * chartW;
+                const y = PY + chartH - (v / maxVal) * chartH;
+                return { x, y, v, i };
+            });
+
+            const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+            const areaPath = linePath + ` L${points[11].x.toFixed(1)},${PY + chartH} L${points[0].x.toFixed(1)},${PY + chartH} Z`;
+
+            // Y축 눈금
+            const yTicks = max > 0 ? [0, Math.round(maxVal / 2), maxVal] : [0];
+            const yTicksHtml = yTicks.map(v => {
+                const y = PY + chartH - (v / maxVal) * chartH;
+                return `<line x1="${PX}" y1="${y}" x2="${PX + chartW}" y2="${y}" stroke="#1a2744" stroke-width="1"/>
+                        <text x="${PX - 4}" y="${y + 3}" text-anchor="end" fill="#555" font-size="8">${v}</text>`;
             }).join('');
+
+            // X축 라벨
+            const xLabels = points.map(p =>
+                `<text x="${p.x}" y="${H - 4}" text-anchor="middle" fill="#666" font-size="8">${p.i + 1}월</text>`
+            ).join('');
+
+            // 데이터 포인트 + 값 표시
+            const dots = points.map(p => {
+                const isCurrent = p.i === currentMonth;
+                const r = isCurrent ? 4 : 3;
+                const fill = isCurrent ? '#f5a623' : '#f5a62388';
+                let label = '';
+                if (p.v > 0) {
+                    label = `<text x="${p.x}" y="${p.y - 8}" text-anchor="middle" fill="#aaa" font-size="8" font-weight="${isCurrent ? '700' : '400'}">${p.v}</text>`;
+                }
+                return `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${fill}"/>${label}`;
+            }).join('');
+
+            container.innerHTML = `
+                <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+                    ${yTicksHtml}
+                    <path d="${areaPath}" fill="rgba(245,166,35,0.08)"/>
+                    <path d="${linePath}" fill="none" stroke="#f5a623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    ${dots}
+                    ${xLabels}
+                </svg>`;
         }
 
         // ───── 모달 ─────
