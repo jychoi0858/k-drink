@@ -79,6 +79,7 @@
         .calendar-day .day-icon { font-size: 0.7em; margin-top: 1px; }
         .calendar-day.sunday .day-number { color: #e74c3c; }
         .calendar-day.saturday .day-number { color: #3498db; }
+        .calendar-day.future { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
 
         /* ── 기록 목록 ── */
         .records-section { margin-bottom: 20px; }
@@ -319,6 +320,7 @@
             <button class="add-drink-btn" onclick="addDrinkToList()">+ 이 주종 추가</button>
             <div class="added-drinks" id="added-drinks"></div>
             <button class="save-btn" id="save-btn" onclick="saveRecord()" disabled>기록 저장</button>
+            <button class="save-btn" id="delete-btn" onclick="deleteRecordFromModal()" style="display:none; background:#e74c3c; color:#fff; margin-top:8px;">이 날 기록 삭제</button>
         </div>
     </div>
 
@@ -455,6 +457,9 @@
                 const dateKey = formatDate(currentYear, currentMonth, d);
                 const dow = new Date(currentYear, currentMonth, d).getDay();
                 const isToday = today.getFullYear() === currentYear && today.getMonth() === currentMonth && today.getDate() === d;
+                const thisDate = new Date(currentYear, currentMonth, d);
+                thisDate.setHours(23,59,59,999);
+                const isFuture = thisDate > today && !isToday;
                 const hasRecord = records[dateKey] && records[dateKey].length > 0;
 
                 let cls = 'calendar-day';
@@ -462,6 +467,7 @@
                 if (hasRecord) cls += ' has-record';
                 if (dow === 0) cls += ' sunday';
                 if (dow === 6) cls += ' saturday';
+                if (isFuture) cls += ' future';
                 el.className = cls;
 
                 let inner = `<span class="day-number">${d}</span>`;
@@ -471,7 +477,9 @@
                     inner += `<span class="day-icon">${DRINK_INFO[main.type]?.emoji || '🍺'}${total > 1 ? total : ''}</span>`;
                 }
                 el.innerHTML = inner;
-                el.addEventListener('click', () => openModal(currentYear, currentMonth, d));
+                if (!isFuture) {
+                    el.addEventListener('click', () => openModal(currentYear, currentMonth, d));
+                }
                 container.appendChild(el);
             }
         }
@@ -549,9 +557,12 @@
         }
 
         // ───── 모달 ─────
+        let hasExistingRecord = false;
+
         window.openModal = function(y, m, d) {
             selectedDate = formatDate(y, m, d);
             tempDrinks = records[selectedDate] ? JSON.parse(JSON.stringify(records[selectedDate])) : [];
+            hasExistingRecord = records[selectedDate] && records[selectedDate].length > 0;
             selectedDrinkType = null;
             glassCount = 1;
 
@@ -590,9 +601,19 @@
 
         function renderTempDrinks() {
             const c = document.getElementById('added-drinks');
-            const btn = document.getElementById('save-btn');
-            if (!tempDrinks.length) { c.innerHTML = ''; btn.disabled = true; return; }
-            btn.disabled = false;
+            const saveBtn = document.getElementById('save-btn');
+            const delBtn = document.getElementById('delete-btn');
+
+            if (!tempDrinks.length) {
+                c.innerHTML = '';
+                saveBtn.disabled = true;
+                // 기존 기록이 있었는데 다 지운 상태 → 삭제 버튼 표시
+                delBtn.style.display = hasExistingRecord ? 'block' : 'none';
+                return;
+            }
+
+            saveBtn.disabled = false;
+            delBtn.style.display = 'none';
             c.innerHTML = tempDrinks.map((dr, i) => {
                 const info = DRINK_INFO[dr.type] || { emoji: '🍺', name: dr.type };
                 return `<div class="added-drink-item"><span>${info.emoji} ${info.name} ${dr.glasses}잔</span><button onclick="removeTempDrink(${i})">✕</button></div>`;
@@ -614,6 +635,15 @@
             if (!confirm('이 날의 기록을 삭제할까요?')) return;
             delete records[key];
             await saveData();
+            render();
+            showToast('기록이 삭제되었습니다');
+        };
+
+        window.deleteRecordFromModal = async function() {
+            if (!confirm('이 날의 기록을 삭제할까요?')) return;
+            delete records[selectedDate];
+            await saveData();
+            closeModal();
             render();
             showToast('기록이 삭제되었습니다');
         };
